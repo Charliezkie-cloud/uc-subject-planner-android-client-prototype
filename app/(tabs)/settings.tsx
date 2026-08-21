@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -7,56 +7,19 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import {
-  getAllPrograms,
-  getStudentProfile,
-  updateStudentProfile,
-} from '@/db/queries/programs';
 import { clearAllPlannedSubjects } from '@/db/queries/plannedSubjects';
 import { clearAllCompletedSubjects } from '@/db/queries/completedSubjects';
 import { seedBundledCurricula } from '@/db/queries/seedCurricula';
-import { Program } from '@/types/database';
 import {
   BookOpen,
-  CheckCircle,
   RotateCcw,
   Trash2,
   Database,
   Info,
-  Layers,
 } from 'lucide-react-native';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 
 export default function SettingsScreen() {
-  const [programs, setPrograms] = useState<Program[]>([]);
-  const [activeProgramId, setActiveProgramId] = useState<number | null>(null);
-
-  const loadSettings = async () => {
-    try {
-      const allPrograms = await getAllPrograms();
-      setPrograms(allPrograms);
-      const profile = await getStudentProfile();
-      setActiveProgramId(profile?.programId ?? (allPrograms[0]?.id || null));
-    } catch (err) {
-      console.error('Failed to load settings', err);
-    }
-  };
-
-  useEffect(() => {
-    loadSettings();
-  }, []);
-
-  const handleSelectProgram = async (programId: number) => {
-    try {
-      await updateStudentProfile(programId, 1);
-      setActiveProgramId(programId);
-      Alert.alert('Curriculum Switched', 'Active program updated.');
-    } catch (err) {
-      console.error('Failed to update program', err);
-      Alert.alert('Error', 'Failed to update program.');
-    }
-  };
-
   const handleClearPlan = () => {
     Alert.alert(
       'Clear Planned Subjects',
@@ -97,7 +60,6 @@ export default function SettingsScreen() {
     try {
       const seedResult = await seedBundledCurricula(true);
       const failedImports = seedResult.imported.filter((result) => !result.success);
-      await loadSettings();
       if (failedImports.length > 0) {
         Alert.alert(
           'Partial Import',
@@ -120,39 +82,7 @@ export default function SettingsScreen() {
       <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Settings</Text>
-        <Text style={styles.subtitle}>Curriculum, Student Profile & Data Management</Text>
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Layers size={18} color="#0284c7" />
-          <Text style={styles.sectionTitle}>Active Curriculum</Text>
-        </View>
-        <Text style={styles.sectionHint}>
-          A course can have multiple prospectus versions. Pick the one that matches your intake year.
-        </Text>
-        {programs.map((program) => {
-          const isActive = activeProgramId === program.id;
-          return (
-            <TouchableOpacity
-              key={program.id}
-              style={[styles.programCard, isActive && styles.activeCard]}
-              onPress={() => handleSelectProgram(program.id)}>
-              <View style={styles.programInfo}>
-                <Text style={styles.progCode}>
-                  {program.programCode} · {program.curriculumVersion}
-                </Text>
-                <Text style={styles.progName}>{program.programName}</Text>
-              </View>
-              {isActive && (
-                <View style={styles.activeBadgeContainer}>
-                  <CheckCircle size={14} color="#0284c7" />
-                  <Text style={styles.activeBadge}>Active</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          );
-        })}
+        <Text style={styles.subtitle}>Student Profile & Data Management</Text>
       </View>
 
       <View style={styles.section}>
@@ -254,54 +184,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#334155',
-  },
-  sectionHint: {
-    fontSize: 12,
-    color: '#64748b',
-    marginBottom: 10,
-    lineHeight: 17,
-  },
-  programCard: {
-    backgroundColor: '#ffffff',
-    padding: 14,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    marginBottom: 8,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  activeCard: {
-    borderColor: '#0284c7',
-    backgroundColor: '#f0f9ff',
-  },
-  programInfo: {
-    flex: 1,
-  },
-  progCode: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  progName: {
-    fontSize: 12,
-    color: '#64748b',
-    marginTop: 2,
-  },
-  activeBadgeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#e0f2fe',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  activeBadge: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#0284c7',
   },
   actionCard: {
     flexDirection: 'row',

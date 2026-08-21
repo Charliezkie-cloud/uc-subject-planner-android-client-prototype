@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   FlatList,
   ActivityIndicator,
   TouchableOpacity,
-  ScrollView,
   Alert,
 } from 'react-native';
 import {
@@ -21,10 +20,9 @@ import {
   ProgramSubjectDetail,
 } from '@/db/queries/subjects';
 import { Program, Prerequisite, Corequisite } from '@/types/database';
-import { YEAR_LEVELS, TERMS } from '@/constants/grades';
+import { TERMS } from '@/constants/grades';
 import {
-  BookOpen,
-  CheckCircle2,
+  CheckCircle,
   GitBranch,
   Layers,
 } from 'lucide-react-native';
@@ -38,7 +36,6 @@ export default function CoursesScreen() {
   const [prereqs, setPrereqs] = useState<Prerequisite[]>([]);
   const [coreqs, setCoreqs] = useState<Corequisite[]>([]);
 
-  const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
   const [selectedTerm, setSelectedTerm] = useState<number | 'all'>('all');
 
   const loadCoursesScreenData = async () => {
@@ -125,29 +122,14 @@ export default function CoursesScreen() {
 
   const filteredSubjects = useMemo(() => {
     return curriculumSubjects.filter((subject) => {
-      const yearMatch = selectedYear === 'all' || subject.yearLevel === selectedYear;
       const termMatch = selectedTerm === 'all' || subject.term === selectedTerm;
-      return yearMatch && termMatch;
+      return termMatch;
     });
-  }, [curriculumSubjects, selectedYear, selectedTerm]);
+  }, [curriculumSubjects, selectedTerm]);
 
   const totalUnits = useMemo(() => {
     return curriculumSubjects.reduce((sum, subject) => sum + subject.units, 0);
   }, [curriculumSubjects]);
-
-  const programsGroupedByCode = useMemo(() => {
-    const groups = new Map<string, Program[]>();
-    for (const program of programs) {
-      const versions = groups.get(program.programCode) || [];
-      versions.push(program);
-      groups.set(program.programCode, versions);
-    }
-    return Array.from(groups.entries()).map(([programCode, versions]) => ({
-      programCode,
-      programName: versions[0]?.programName ?? programCode,
-      versions,
-    }));
-  }, [programs]);
 
   return (
     <ScreenContainer style={styles.container}>
@@ -163,59 +145,37 @@ export default function CoursesScreen() {
           </View>
         </View>
 
-        {programsGroupedByCode.length > 0 && (
-          <View style={styles.programGroups}>
-            {programsGroupedByCode.map((group) => (
-              <View key={group.programCode} style={styles.programGroup}>
-                <Text style={styles.programGroupLabel}>
-                  {group.programCode}
-                  {group.versions.length > 1 ? ' · prospectus versions' : ''}
-                </Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {group.versions.map((program) => {
-                    const isActive = activeProgram?.id === program.id;
-                    return (
-                      <TouchableOpacity
-                        key={program.id}
-                        style={[styles.programCard, isActive && styles.programCardActive]}
-                        onPress={() => handleSelectProgram(program)}>
-                        <BookOpen size={14} color={isActive ? '#0284c7' : '#64748b'} />
-                        <Text
-                          style={[
-                            styles.programCodeText,
-                            isActive && styles.programCodeTextActive,
-                          ]}>
-                          {program.curriculumVersion}
-                        </Text>
-                        {isActive && <CheckCircle2 size={13} color="#0284c7" />}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-              </View>
-            ))}
+        {programs.length > 0 && (
+          <View style={styles.curriculumSection}>
+            <View style={styles.curriculumSectionHeader}>
+              <Layers size={18} color="#0284c7" />
+              <Text style={styles.curriculumSectionTitle}>Curriculum</Text>
+            </View>
+            <Text style={styles.curriculumHint}>Select the curriculum you are following.</Text>
+            {programs.map((program) => {
+              const isActive = activeProgram?.id === program.id;
+              return (
+                <TouchableOpacity
+                  key={program.id}
+                  style={[styles.curriculumCard, isActive && styles.curriculumCardActive]}
+                  onPress={() => handleSelectProgram(program)}>
+                  <View style={styles.curriculumInfo}>
+                    <Text style={styles.curriculumCode}>
+                      {program.programCode} · {program.curriculumVersion}
+                    </Text>
+                    <Text style={styles.curriculumName}>{program.programName}</Text>
+                  </View>
+                  {isActive && (
+                    <View style={styles.activeBadgeContainer}>
+                      <CheckCircle size={14} color="#0284c7" />
+                      <Text style={styles.activeBadge}>Active</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
-
-        <View style={styles.filterRow}>
-          <TouchableOpacity
-            style={[styles.chip, selectedYear === 'all' && styles.chipActive]}
-            onPress={() => setSelectedYear('all')}>
-            <Text style={[styles.chipText, selectedYear === 'all' && styles.chipTextActive]}>
-              All Years
-            </Text>
-          </TouchableOpacity>
-          {YEAR_LEVELS.map((yearLevel) => (
-            <TouchableOpacity
-              key={yearLevel.id}
-              style={[styles.chip, selectedYear === yearLevel.id && styles.chipActive]}
-              onPress={() => setSelectedYear(yearLevel.id)}>
-              <Text style={[styles.chipText, selectedYear === yearLevel.id && styles.chipTextActive]}>
-                Yr {yearLevel.id}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
 
         <View style={styles.filterRow}>
           <TouchableOpacity
@@ -334,44 +294,66 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginTop: 2,
   },
-  programGroups: {
+  curriculumSection: {
     marginBottom: 10,
-    gap: 8,
   },
-  programGroup: {
-    gap: 6,
-  },
-  programGroupLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#64748b',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  programCard: {
+  curriculumSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: '#f1f5f9',
-    marginRight: 8,
+    marginBottom: 8,
+  },
+  curriculumSectionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  curriculumHint: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 10,
+  },
+  curriculumCard: {
+    backgroundColor: '#ffffff',
+    padding: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#e2e8f0',
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  programCardActive: {
-    backgroundColor: '#e0f2fe',
-    borderColor: '#bae6fd',
+  curriculumCardActive: {
+    borderColor: '#0284c7',
+    backgroundColor: '#f0f9ff',
   },
-  programCodeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#64748b',
+  curriculumInfo: {
+    flex: 1,
   },
-  programCodeTextActive: {
-    color: '#0284c7',
+  curriculumCode: {
+    fontSize: 15,
     fontWeight: '700',
+    color: '#0f172a',
+  },
+  curriculumName: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  activeBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#e0f2fe',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  activeBadge: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0284c7',
   },
   filterRow: {
     flexDirection: 'row',
