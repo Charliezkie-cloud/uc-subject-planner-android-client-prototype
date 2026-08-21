@@ -21,9 +21,9 @@ import {
   GraduationCap,
   CheckCircle,
   XCircle,
-  Award,
   X,
 } from 'lucide-react-native';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 
 type FilterType = 'all' | 'passed' | 'failed';
 
@@ -139,8 +139,7 @@ export default function SubjectsScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <ScreenContainer style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <View>
@@ -160,7 +159,6 @@ export default function SubjectsScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Stats Summary Cards */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statLabel}>GWA</Text>
@@ -182,7 +180,6 @@ export default function SubjectsScreen() {
           </View>
         </View>
 
-        {/* Filter Tabs */}
         <View style={styles.filterRow}>
           <TouchableOpacity
             style={[styles.filterTab, filter === 'all' && styles.filterTabActive]}
@@ -210,7 +207,6 @@ export default function SubjectsScreen() {
         </View>
       </View>
 
-      {/* List of completed subjects */}
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#0284c7" />
@@ -284,14 +280,13 @@ export default function SubjectsScreen() {
               <GraduationCap size={40} color="#cbd5e1" />
               <Text style={styles.emptyTitle}>No Recorded Grades</Text>
               <Text style={styles.emptyText}>
-                Tap "+ Record Grade" or grade subjects in the Planner to build your academic history.
+                {'Tap "+ Record Grade" or grade subjects in the Planner to build your academic history.'}
               </Text>
             </View>
           }
         />
       )}
 
-      {/* Select Subject Modal */}
       <Modal
         visible={selectSubjectModalVisible}
         animationType="slide"
@@ -307,21 +302,21 @@ export default function SubjectsScreen() {
             </View>
 
             <ScrollView style={styles.subjectPickerList}>
-              {availableSubjects.map((s) => (
+              {availableSubjects.map((subject) => (
                 <TouchableOpacity
-                  key={s.subjectId}
+                  key={subject.subjectId}
                   style={styles.subjectPickerItem}
-                  onPress={() => handlePickSubject(s)}>
+                  onPress={() => handlePickSubject(subject)}>
                   <View>
                     <View style={styles.codeRow}>
-                      <Text style={styles.pickerCode}>{s.subjectCode}</Text>
+                      <Text style={styles.pickerCode}>{subject.subjectCode}</Text>
                       <Text style={styles.pickerMeta}>
-                        Year {s.yearLevel} - Term {s.term}
+                        Year {subject.yearLevel} - Term {subject.term}
                       </Text>
                     </View>
-                    <Text style={styles.pickerName}>{s.subjectName}</Text>
+                    <Text style={styles.pickerName}>{subject.subjectName}</Text>
                   </View>
-                  <Text style={styles.pickerUnits}>{s.units}u</Text>
+                  <Text style={styles.pickerUnits}>{subject.units}u</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -329,7 +324,6 @@ export default function SubjectsScreen() {
         </View>
       </Modal>
 
-      {/* Grade Input Modal */}
       {(selectedSubjectForGrade || editingAttempt) && (
         <GradeModal
           visible={gradeModalVisible}
@@ -346,7 +340,7 @@ export default function SubjectsScreen() {
           onSubmit={handleSaveGrade}
         />
       )}
-    </View>
+    </ScreenContainer>
   );
 }
 

@@ -1,5 +1,3 @@
-
-
 import { getDatabase } from '../client';
 import { PlannedSubject } from '@/types/database';
 
@@ -27,18 +25,18 @@ export async function getPlannedSubjects(): Promise<PlannedSubjectDetail[]> {
      ORDER BY ps.planned_school_year, ps.planned_term, s.subject_code;`
   );
 
-  return rows.map((r) => ({
-    id: r.id,
-    subjectId: r.subject_id,
-    plannedSchoolYear: r.planned_school_year,
-    plannedTerm: r.planned_term,
-    subjectCode: r.subject_code,
-    subjectName: r.subject_name,
-    units: r.units,
+  return rows.map((plannedRow) => ({
+    id: plannedRow.id,
+    subjectId: plannedRow.subject_id,
+    plannedSchoolYear: plannedRow.planned_school_year,
+    plannedTerm: plannedRow.planned_term,
+    subjectCode: plannedRow.subject_code,
+    subjectName: plannedRow.subject_name,
+    units: plannedRow.units,
   }));
 }
 
-export async function addPlannedSubject(params: {
+export async function addPlannedSubject(plannedSubjectParams: {
   subjectId: number;
   plannedSchoolYear: string;
   plannedTerm: number;
@@ -48,16 +46,20 @@ export async function addPlannedSubject(params: {
     `INSERT INTO planned_subjects (subject_id, planned_school_year, planned_term)
      VALUES (?, ?, ?)
      ON CONFLICT(subject_id, planned_school_year, planned_term) DO NOTHING;`,
-    [params.subjectId, params.plannedSchoolYear, params.plannedTerm]
+    [
+      plannedSubjectParams.subjectId,
+      plannedSubjectParams.plannedSchoolYear,
+      plannedSubjectParams.plannedTerm,
+    ]
   );
 }
 
-export async function removePlannedSubject(id: number): Promise<void> {
+export async function removePlannedSubject(plannedSubjectId: number): Promise<void> {
   const db = await getDatabase();
-  await db.runAsync('DELETE FROM planned_subjects WHERE id = ?;', [id]);
+  await db.runAsync('DELETE FROM planned_subjects WHERE id = ?;', [plannedSubjectId]);
 }
 
-export async function removePlannedSubjectBySubjectAndTerm(params: {
+export async function removePlannedSubjectBySubjectAndTerm(plannedSubjectParams: {
   subjectId: number;
   plannedSchoolYear: string;
   plannedTerm: number;
@@ -65,18 +67,22 @@ export async function removePlannedSubjectBySubjectAndTerm(params: {
   const db = await getDatabase();
   await db.runAsync(
     'DELETE FROM planned_subjects WHERE subject_id = ? AND planned_school_year = ? AND planned_term = ?;',
-    [params.subjectId, params.plannedSchoolYear, params.plannedTerm]
+    [
+      plannedSubjectParams.subjectId,
+      plannedSubjectParams.plannedSchoolYear,
+      plannedSubjectParams.plannedTerm,
+    ]
   );
 }
 
-export async function clearPlannedSubjectsForTerm(params: {
+export async function clearPlannedSubjectsForTerm(plannedTermParams: {
   plannedSchoolYear: string;
   plannedTerm: number;
 }): Promise<void> {
   const db = await getDatabase();
   await db.runAsync(
     'DELETE FROM planned_subjects WHERE planned_school_year = ? AND planned_term = ?;',
-    [params.plannedSchoolYear, params.plannedTerm]
+    [plannedTermParams.plannedSchoolYear, plannedTermParams.plannedTerm]
   );
 }
 
@@ -84,4 +90,5 @@ export async function clearAllPlannedSubjects(): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM planned_subjects;');
 }
+
 

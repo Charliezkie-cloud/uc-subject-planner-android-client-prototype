@@ -18,11 +18,11 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
   const plannedYear = targetTerm?.plannedSchoolYear;
   const plannedTermNumber = targetTerm?.plannedTerm;
 
-  const calculate = useCallback(async () => {
+  const calculateEligibility = useCallback(async () => {
     setLoading(true);
     try {
-      const profile = await getStudentProfile();
-      if (!profile || !profile.programId) {
+      const studentProfile = await getStudentProfile();
+      if (!studentProfile || !studentProfile.programId) {
         setEligibilityMap(new Map());
         setSubjects([]);
         setActiveProgram(null);
@@ -32,72 +32,76 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
         return;
       }
 
-      const programId = profile.programId;
-      const [prog, progSubjects, prereqs, coreqs, statuses, planned] = await Promise.all([
-        getProgramById(programId),
-        getProgramSubjects(programId),
-        getPrerequisitesForProgram(programId),
-        getCorequisitesForProgram(programId),
-        getSubjectStatuses(),
-        getPlannedSubjects(),
-      ]);
+      const programId = studentProfile.programId;
+      const [program, programSubjects, programPrerequisites, programCorequisites, statuses, plannedList] =
+        await Promise.all([
+          getProgramById(programId),
+          getProgramSubjects(programId),
+          getPrerequisitesForProgram(programId),
+          getCorequisitesForProgram(programId),
+          getSubjectStatuses(),
+          getPlannedSubjects(),
+        ]);
 
-      setActiveProgram(prog);
-      setSubjects(progSubjects);
+      setActiveProgram(program);
+      setSubjects(programSubjects);
       setSubjectStatuses(statuses);
-      setAllPlannedSubjects(planned);
+      setAllPlannedSubjects(plannedList);
 
-      const mappedSubjects = progSubjects.map((s) => ({
-        id: s.subjectId,
-        subjectCode: s.subjectCode,
-        subjectName: s.subjectName,
-        units: s.units,
-        yearLevel: s.yearLevel,
-        term: s.term,
+      const mappedSubjects = programSubjects.map((subjectDetail) => ({
+        id: subjectDetail.subjectId,
+        subjectCode: subjectDetail.subjectCode,
+        subjectName: subjectDetail.subjectName,
+        units: subjectDetail.units,
+        yearLevel: subjectDetail.yearLevel,
+        term: subjectDetail.term,
       }));
 
-      const results = evaluateEligibility({
+      const evaluationResults = evaluateEligibility({
         subjects: mappedSubjects,
-        prerequisites: prereqs,
-        corequisites: coreqs,
+        prerequisites: programPrerequisites,
+        corequisites: programCorequisites,
         subjectStatuses: statuses,
-        plannedSubjects: planned,
+        plannedSubjects: plannedList,
         targetPlanningTerm:
           plannedYear && plannedTermNumber !== undefined
             ? { plannedSchoolYear: plannedYear, plannedTerm: plannedTermNumber }
             : undefined,
       });
 
-      setEligibilityMap(results);
-    } catch (err) {
-      console.error('Failed to calculate eligibility', err);
+      setEligibilityMap(evaluationResults);
+    } catch (error) {
+      console.error('Failed to calculate eligibility', error);
     } finally {
       setLoading(false);
     }
   }, [plannedYear, plannedTermNumber]);
 
   useEffect(() => {
-    calculate();
-  }, [calculate]);
+    calculateEligibility();
+  }, [calculateEligibility]);
 
   const subjectStatusesMap = useMemo(() => {
-    const map = new Map<number, SubjectStatusView>();
-    for (const st of subjectStatuses) {
-      map.set(st.subjectId, st);
+    const statusesMap = new Map<number, SubjectStatusView>();
+    for (const statusView of subjectStatuses) {
+      statusesMap.set(statusView.subjectId, statusView);
     }
-    return map;
+    return statusesMap;
   }, [subjectStatuses]);
 
   const plannedSubjectIdsForTargetTerm = useMemo(() => {
-    const set = new Set<number>();
+    const plannedSet = new Set<number>();
     if (plannedYear && plannedTermNumber !== undefined) {
-      for (const p of allPlannedSubjects) {
-        if (p.plannedSchoolYear === plannedYear && p.plannedTerm === plannedTermNumber) {
-          set.add(p.subjectId);
+      for (const plannedSubject of allPlannedSubjects) {
+        if (
+          plannedSubject.plannedSchoolYear === plannedYear &&
+          plannedSubject.plannedTerm === plannedTermNumber
+        ) {
+          plannedSet.add(plannedSubject.subjectId);
         }
       }
     }
-    return set;
+    return plannedSet;
   }, [allPlannedSubjects, plannedYear, plannedTermNumber]);
 
   const planSubject = async (subjectId: number) => {
@@ -107,7 +111,7 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
       plannedSchoolYear: plannedYear,
       plannedTerm: plannedTermNumber,
     });
-    await calculate();
+    await calculateEligibility();
   };
 
   const unplanSubject = async (subjectId: number) => {
@@ -117,7 +121,7 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
       plannedSchoolYear: plannedYear,
       plannedTerm: plannedTermNumber,
     });
-    await calculate();
+    await calculateEligibility();
   };
 
   const planAllEligible = async (subjectIds: number[]) => {
@@ -129,7 +133,7 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
         plannedTerm: plannedTermNumber,
       });
     }
-    await calculate();
+    await calculateEligibility();
   };
 
   const recordGrade = async (
@@ -144,7 +148,7 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
       schoolYear: schoolYear ?? plannedYear,
       termTaken: term ?? plannedTermNumber,
     });
-    await calculate();
+    await calculateEligibility();
   };
 
   return {
@@ -155,7 +159,7 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
     subjectStatusesMap,
     allPlannedSubjects,
     plannedSubjectIds: plannedSubjectIdsForTargetTerm,
-    refreshEligibility: calculate,
+    refreshEligibility: calculateEligibility,
     planSubject,
     unplanSubject,
     planAllEligible,

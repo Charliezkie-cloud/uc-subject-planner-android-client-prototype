@@ -30,18 +30,18 @@ export async function getCompletedSubjects(): Promise<CompletedSubjectDetail[]> 
      ORDER BY cs.created_at DESC;`
   );
 
-  return rows.map((r) => ({
-    id: r.id,
-    subjectId: r.subject_id,
-    grade: r.grade,
-    status: r.status,
-    attemptNumber: r.attempt_number,
-    schoolYear: r.school_year,
-    termTaken: r.term_taken,
-    createdAt: r.created_at,
-    subjectCode: r.subject_code,
-    subjectName: r.subject_name,
-    units: r.units,
+  return rows.map((completedSubjectRow) => ({
+    id: completedSubjectRow.id,
+    subjectId: completedSubjectRow.subject_id,
+    grade: completedSubjectRow.grade,
+    status: completedSubjectRow.status,
+    attemptNumber: completedSubjectRow.attempt_number,
+    schoolYear: completedSubjectRow.school_year,
+    termTaken: completedSubjectRow.term_taken,
+    createdAt: completedSubjectRow.created_at,
+    subjectCode: completedSubjectRow.subject_code,
+    subjectName: completedSubjectRow.subject_name,
+    units: completedSubjectRow.units,
   }));
 }
 
@@ -54,15 +54,15 @@ export async function getSubjectStatuses(): Promise<SubjectStatusView[]> {
     attempt_number: number;
   }>('SELECT subject_id, grade, status, attempt_number FROM subject_status;');
 
-  return rows.map((r) => ({
-    subjectId: r.subject_id,
-    grade: r.grade,
-    status: r.status,
-    attemptNumber: r.attempt_number,
+  return rows.map((statusRow) => ({
+    subjectId: statusRow.subject_id,
+    grade: statusRow.grade,
+    status: statusRow.status,
+    attemptNumber: statusRow.attempt_number,
   }));
 }
 
-export async function recordSubjectAttempt(params: {
+export async function recordSubjectAttempt(subjectAttemptParams: {
   subjectId: number;
   grade: number;
   schoolYear?: string | null;
@@ -70,29 +70,28 @@ export async function recordSubjectAttempt(params: {
 }): Promise<void> {
   const db = await getDatabase();
 
-  // Find latest attempt number for this subject
-  const latest = await db.getFirstAsync<{ max_attempt: number | null }>(
+  const latestAttemptRow = await db.getFirstAsync<{ max_attempt: number | null }>(
     'SELECT MAX(attempt_number) AS max_attempt FROM completed_subjects WHERE subject_id = ?;',
-    [params.subjectId]
+    [subjectAttemptParams.subjectId]
   );
-  const nextAttemptNumber = (latest?.max_attempt ?? 0) + 1;
+  const nextAttemptNumber = (latestAttemptRow?.max_attempt ?? 0) + 1;
 
   await db.runAsync(
     `INSERT INTO completed_subjects (subject_id, grade, attempt_number, school_year, term_taken, created_at)
      VALUES (?, ?, ?, ?, ?, datetime('now'));`,
     [
-      params.subjectId,
-      params.grade,
+      subjectAttemptParams.subjectId,
+      subjectAttemptParams.grade,
       nextAttemptNumber,
-      params.schoolYear ?? null,
-      params.termTaken ?? null,
+      subjectAttemptParams.schoolYear ?? null,
+      subjectAttemptParams.termTaken ?? null,
     ]
   );
 }
 
-export async function deleteCompletedSubject(id: number): Promise<void> {
+export async function deleteCompletedSubject(completedSubjectId: number): Promise<void> {
   const db = await getDatabase();
-  await db.runAsync('DELETE FROM completed_subjects WHERE id = ?;', [id]);
+  await db.runAsync('DELETE FROM completed_subjects WHERE id = ?;', [completedSubjectId]);
 }
 
 export async function clearAllCompletedSubjects(): Promise<void> {

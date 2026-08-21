@@ -26,6 +26,7 @@ import {
   Info,
   Layers,
 } from 'lucide-react-native';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 
 export default function SettingsScreen() {
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -33,10 +34,10 @@ export default function SettingsScreen() {
 
   const loadSettings = async () => {
     try {
-      const all = await getAllPrograms();
-      setPrograms(all);
+      const allPrograms = await getAllPrograms();
+      setPrograms(allPrograms);
       const profile = await getStudentProfile();
-      setActiveProgramId(profile?.programId ?? (all[0]?.id || null));
+      setActiveProgramId(profile?.programId ?? (allPrograms[0]?.id || null));
     } catch (err) {
       console.error('Failed to load settings', err);
     }
@@ -105,30 +106,30 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScreenContainer>
+      <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Settings</Text>
         <Text style={styles.subtitle}>Curriculum, Student Profile & Data Management</Text>
       </View>
 
-      {/* Active Curriculum Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Layers size={18} color="#0284c7" />
           <Text style={styles.sectionTitle}>Active Curriculum</Text>
         </View>
-        {programs.map((prog) => {
-          const isActive = activeProgramId === prog.id;
+        {programs.map((program) => {
+          const isActive = activeProgramId === program.id;
           return (
             <TouchableOpacity
-              key={prog.id}
+              key={program.id}
               style={[styles.programCard, isActive && styles.activeCard]}
-              onPress={() => handleSelectProgram(prog.id)}>
+              onPress={() => handleSelectProgram(program.id)}>
               <View style={styles.programInfo}>
                 <Text style={styles.progCode}>
-                  {prog.programCode} - {prog.curriculumVersion}
+                  {program.programCode} - {program.curriculumVersion}
                 </Text>
-                <Text style={styles.progName}>{prog.programName}</Text>
+                <Text style={styles.progName}>{program.programName}</Text>
               </View>
               {isActive && (
                 <View style={styles.activeBadgeContainer}>
@@ -141,7 +142,6 @@ export default function SettingsScreen() {
         })}
       </View>
 
-      {/* Data Management Section */}
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Database size={18} color="#0284c7" />
@@ -179,7 +179,6 @@ export default function SettingsScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* About Section */}
       <View style={[styles.section, styles.lastSection]}>
         <View style={styles.sectionHeader}>
           <Info size={18} color="#0284c7" />
@@ -195,7 +194,8 @@ export default function SettingsScreen() {
           </Text>
         </View>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </ScreenContainer>
   );
 }
 

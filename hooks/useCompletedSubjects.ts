@@ -15,47 +15,47 @@ export function useCompletedSubjects() {
   const [availableSubjects, setAvailableSubjects] = useState<ProgramSubjectDetail[]>([]);
   const [activeProgram, setActiveProgram] = useState<Program | null>(null);
 
-  const fetchCompleted = useCallback(async () => {
+  const fetchCompletedSubjects = useCallback(async () => {
     setLoading(true);
     try {
-      const [data, profile] = await Promise.all([
+      const [completedRecords, studentProfile] = await Promise.all([
         getCompletedSubjects(),
         getStudentProfile(),
       ]);
-      setCompletedSubjects(data);
+      setCompletedSubjects(completedRecords);
 
-      if (profile?.programId) {
-        const [prog, subj] = await Promise.all([
-          getProgramById(profile.programId),
-          getProgramSubjects(profile.programId),
+      if (studentProfile?.programId) {
+        const [program, programSubjects] = await Promise.all([
+          getProgramById(studentProfile.programId),
+          getProgramSubjects(studentProfile.programId),
         ]);
-        setActiveProgram(prog);
-        setAvailableSubjects(subj);
+        setActiveProgram(program);
+        setAvailableSubjects(programSubjects);
       }
-    } catch (err) {
-      console.error('Failed to fetch completed subjects', err);
+    } catch (error) {
+      console.error('Failed to fetch completed subjects', error);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchCompleted();
-  }, [fetchCompleted]);
+    fetchCompletedSubjects();
+  }, [fetchCompletedSubjects]);
 
-  const addAttempt = async (params: {
+  const addAttempt = async (subjectAttempt: {
     subjectId: number;
     grade: number;
     schoolYear?: string | null;
     termTaken?: number | null;
   }) => {
-    await recordSubjectAttempt(params);
-    await fetchCompleted();
+    await recordSubjectAttempt(subjectAttempt);
+    await fetchCompletedSubjects();
   };
 
-  const removeAttempt = async (id: number) => {
-    await deleteCompletedSubject(id);
-    await fetchCompleted();
+  const removeAttempt = async (completedSubjectId: number) => {
+    await deleteCompletedSubject(completedSubjectId);
+    await fetchCompletedSubjects();
   };
 
   return {
@@ -63,9 +63,10 @@ export function useCompletedSubjects() {
     completedSubjects,
     availableSubjects,
     activeProgram,
-    refreshCompleted: fetchCompleted,
+    refreshCompleted: fetchCompletedSubjects,
     addAttempt,
     removeAttempt,
   };
 }
+
 

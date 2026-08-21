@@ -28,13 +28,13 @@ export async function getProgramSubjects(programId: number): Promise<ProgramSubj
     [programId]
   );
 
-  return rows.map((r) => ({
-    subjectId: r.subject_id,
-    subjectCode: r.subject_code,
-    subjectName: r.subject_name,
-    units: r.units,
-    yearLevel: r.year_level,
-    term: r.term,
+  return rows.map((subjectRow) => ({
+    subjectId: subjectRow.subject_id,
+    subjectCode: subjectRow.subject_code,
+    subjectName: subjectRow.subject_name,
+    units: subjectRow.units,
+    yearLevel: subjectRow.year_level,
+    term: subjectRow.term,
   }));
 }
 
@@ -52,11 +52,11 @@ export async function getPrerequisitesForProgram(programId: number): Promise<Pre
     [programId]
   );
 
-  return rows.map((r) => ({
-    id: r.id,
-    programId: r.program_id,
-    subjectId: r.subject_id,
-    prerequisiteSubjectId: r.prerequisite_subject_id,
+  return rows.map((prerequisiteRow) => ({
+    id: prerequisiteRow.id,
+    programId: prerequisiteRow.program_id,
+    subjectId: prerequisiteRow.subject_id,
+    prerequisiteSubjectId: prerequisiteRow.prerequisite_subject_id,
   }));
 }
 
@@ -74,10 +74,10 @@ export async function getCorequisitesForProgram(programId: number): Promise<Core
     [programId]
   );
 
-  return rows.map((r) => ({
-    id: r.id,
-    programId: r.program_id,
-    subjectId: r.subject_id,
-    corequisiteSubjectId: r.corequisite_subject_id,
+  return rows.map((corequisiteRow) => ({
+    id: corequisiteRow.id,
+    programId: corequisiteRow.program_id,
+    subjectId: corequisiteRow.subject_id,
+    corequisiteSubjectId: corequisiteRow.corequisite_subject_id,
   }));
 }

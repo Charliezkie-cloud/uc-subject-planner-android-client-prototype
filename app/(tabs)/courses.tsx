@@ -27,8 +27,8 @@ import {
   CheckCircle2,
   GitBranch,
   Layers,
-  Sparkles,
 } from 'lucide-react-native';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 
 export default function CoursesScreen() {
   const [loading, setLoading] = useState(true);
@@ -41,26 +41,26 @@ export default function CoursesScreen() {
   const [selectedYear, setSelectedYear] = useState<number | 'all'>('all');
   const [selectedTerm, setSelectedTerm] = useState<number | 'all'>('all');
 
-  const loadData = async () => {
+  const loadCoursesScreenData = async () => {
     try {
       setLoading(true);
-      const allProgs = await getAllPrograms();
-      setPrograms(allProgs);
+      const allPrograms = await getAllPrograms();
+      setPrograms(allPrograms);
 
       const profile = await getStudentProfile();
-      const currentProg =
-        allProgs.find((p) => p.id === profile?.programId) || allProgs[0] || null;
-      setActiveProgram(currentProg);
+      const currentProgram =
+        allPrograms.find((program) => program.id === profile?.programId) || allPrograms[0] || null;
+      setActiveProgram(currentProgram);
 
-      if (currentProg) {
-        const [subjects, pre, co] = await Promise.all([
-          getProgramSubjects(currentProg.id),
-          getPrerequisitesForProgram(currentProg.id),
-          getCorequisitesForProgram(currentProg.id),
+      if (currentProgram) {
+        const [subjects, prerequisites, corequisites] = await Promise.all([
+          getProgramSubjects(currentProgram.id),
+          getPrerequisitesForProgram(currentProgram.id),
+          getCorequisitesForProgram(currentProgram.id),
         ]);
         setCurriculumSubjects(subjects);
-        setPrereqs(pre);
-        setCoreqs(co);
+        setPrereqs(prerequisites);
+        setCoreqs(corequisites);
       }
     } catch (err) {
       console.error('Failed to load courses', err);
@@ -70,76 +70,70 @@ export default function CoursesScreen() {
   };
 
   useEffect(() => {
-    loadData();
+    loadCoursesScreenData();
   }, []);
 
-  const handleSelectProgram = async (prog: Program) => {
+  const handleSelectProgram = async (selectedProgram: Program) => {
     try {
-      await updateStudentProfile(prog.id, 1);
-      setActiveProgram(prog);
-      const [subjects, pre, co] = await Promise.all([
-        getProgramSubjects(prog.id),
-        getPrerequisitesForProgram(prog.id),
-        getCorequisitesForProgram(prog.id),
+      await updateStudentProfile(selectedProgram.id, 1);
+      setActiveProgram(selectedProgram);
+      const [subjects, prerequisites, corequisites] = await Promise.all([
+        getProgramSubjects(selectedProgram.id),
+        getPrerequisitesForProgram(selectedProgram.id),
+        getCorequisitesForProgram(selectedProgram.id),
       ]);
       setCurriculumSubjects(subjects);
-      setPrereqs(pre);
-      setCoreqs(co);
-      Alert.alert('Curriculum Switched', `Active curriculum set to ${prog.programCode}.`);
+      setPrereqs(prerequisites);
+      setCoreqs(corequisites);
+      Alert.alert('Curriculum Switched', `Active curriculum set to ${selectedProgram.programCode}.`);
     } catch (err) {
       console.error('Failed to switch program', err);
       Alert.alert('Error', 'Failed to switch program.');
     }
   };
 
-  // Map subjects for quick prereq/coreq name lookups
-  const subjectMap = useMemo(() => {
+  const subjectCodeById = useMemo(() => {
     const map = new Map<number, string>();
-    for (const s of curriculumSubjects) {
-      map.set(s.subjectId, s.subjectCode);
+    for (const subject of curriculumSubjects) {
+      map.set(subject.subjectId, subject.subjectCode);
     }
     return map;
   }, [curriculumSubjects]);
 
-  // Group prereqs and coreqs by subjectId
-  const prereqsBySubject = useMemo(() => {
+  const prerequisiteCodesBySubjectId = useMemo(() => {
     const map = new Map<number, string[]>();
-    for (const p of prereqs) {
-      const list = map.get(p.subjectId) || [];
-      const code = subjectMap.get(p.prerequisiteSubjectId) || `Subject #${p.prerequisiteSubjectId}`;
-      list.push(code);
-      map.set(p.subjectId, list);
+    for (const prereq of prereqs) {
+      const codes = map.get(prereq.subjectId) || [];
+      codes.push(subjectCodeById.get(prereq.prerequisiteSubjectId) || `Subject #${prereq.prerequisiteSubjectId}`);
+      map.set(prereq.subjectId, codes);
     }
     return map;
-  }, [prereqs, subjectMap]);
+  }, [prereqs, subjectCodeById]);
 
-  const coreqsBySubject = useMemo(() => {
+  const corequisiteCodesBySubjectId = useMemo(() => {
     const map = new Map<number, string[]>();
-    for (const c of coreqs) {
-      const list = map.get(c.subjectId) || [];
-      const code = subjectMap.get(c.corequisiteSubjectId) || `Subject #${c.corequisiteSubjectId}`;
-      list.push(code);
-      map.set(c.subjectId, list);
+    for (const coreq of coreqs) {
+      const codes = map.get(coreq.subjectId) || [];
+      codes.push(subjectCodeById.get(coreq.corequisiteSubjectId) || `Subject #${coreq.corequisiteSubjectId}`);
+      map.set(coreq.subjectId, codes);
     }
     return map;
-  }, [coreqs, subjectMap]);
+  }, [coreqs, subjectCodeById]);
 
-  // Filtered Subjects
   const filteredSubjects = useMemo(() => {
-    return curriculumSubjects.filter((s) => {
-      const yearMatch = selectedYear === 'all' || s.yearLevel === selectedYear;
-      const termMatch = selectedTerm === 'all' || s.term === selectedTerm;
+    return curriculumSubjects.filter((subject) => {
+      const yearMatch = selectedYear === 'all' || subject.yearLevel === selectedYear;
+      const termMatch = selectedTerm === 'all' || subject.term === selectedTerm;
       return yearMatch && termMatch;
     });
   }, [curriculumSubjects, selectedYear, selectedTerm]);
 
   const totalUnits = useMemo(() => {
-    return curriculumSubjects.reduce((sum, s) => sum + s.units, 0);
+    return curriculumSubjects.reduce((sum, subject) => sum + subject.units, 0);
   }, [curriculumSubjects]);
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
+    <ScreenContainer style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTitleRow}>
           <View>
@@ -152,19 +146,18 @@ export default function CoursesScreen() {
           </View>
         </View>
 
-        {/* Program Selection Cards (if multiple programs exist) */}
         {programs.length > 1 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.programScroll}>
-            {programs.map((p) => {
-              const isActive = activeProgram?.id === p.id;
+            {programs.map((program) => {
+              const isActive = activeProgram?.id === program.id;
               return (
                 <TouchableOpacity
-                  key={p.id}
+                  key={program.id}
                   style={[styles.programCard, isActive && styles.programCardActive]}
-                  onPress={() => handleSelectProgram(p)}>
+                  onPress={() => handleSelectProgram(program)}>
                   <BookOpen size={14} color={isActive ? '#0284c7' : '#64748b'} />
                   <Text style={[styles.programCodeText, isActive && styles.programCodeTextActive]}>
-                    {p.programCode} ({p.curriculumVersion})
+                    {program.programCode} ({program.curriculumVersion})
                   </Text>
                   {isActive && <CheckCircle2 size={13} color="#0284c7" />}
                 </TouchableOpacity>
@@ -173,7 +166,6 @@ export default function CoursesScreen() {
           </ScrollView>
         )}
 
-        {/* Year Filter */}
         <View style={styles.filterRow}>
           <TouchableOpacity
             style={[styles.chip, selectedYear === 'all' && styles.chipActive]}
@@ -182,19 +174,18 @@ export default function CoursesScreen() {
               All Years
             </Text>
           </TouchableOpacity>
-          {YEAR_LEVELS.map((yr) => (
+          {YEAR_LEVELS.map((yearLevel) => (
             <TouchableOpacity
-              key={yr.id}
-              style={[styles.chip, selectedYear === yr.id && styles.chipActive]}
-              onPress={() => setSelectedYear(yr.id)}>
-              <Text style={[styles.chipText, selectedYear === yr.id && styles.chipTextActive]}>
-                Yr {yr.id}
+              key={yearLevel.id}
+              style={[styles.chip, selectedYear === yearLevel.id && styles.chipActive]}
+              onPress={() => setSelectedYear(yearLevel.id)}>
+              <Text style={[styles.chipText, selectedYear === yearLevel.id && styles.chipTextActive]}>
+                Yr {yearLevel.id}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Term Filter */}
         <View style={styles.filterRow}>
           <TouchableOpacity
             style={[styles.chip, selectedTerm === 'all' && styles.chipActive]}
@@ -203,19 +194,18 @@ export default function CoursesScreen() {
               All Terms
             </Text>
           </TouchableOpacity>
-          {TERMS.slice(0, 2).map((t) => (
+          {TERMS.slice(0, 2).map((termOption) => (
             <TouchableOpacity
-              key={t.id}
-              style={[styles.chip, selectedTerm === t.id && styles.chipActive]}
-              onPress={() => setSelectedTerm(t.id)}>
-              <Text style={[styles.chipText, selectedTerm === t.id && styles.chipTextActive]}>
-                {t.shortLabel}
+              key={termOption.id}
+              style={[styles.chip, selectedTerm === termOption.id && styles.chipActive]}
+              onPress={() => setSelectedTerm(termOption.id)}>
+              <Text style={[styles.chipText, selectedTerm === termOption.id && styles.chipTextActive]}>
+                {termOption.shortLabel}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Stats banner */}
         <View style={styles.statsBanner}>
           <Text style={styles.statsBannerText}>
             Showing <Text style={styles.bold}>{filteredSubjects.length}</Text> of{' '}
@@ -225,7 +215,6 @@ export default function CoursesScreen() {
         </View>
       </View>
 
-      {/* Subjects List */}
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#0284c7" />
@@ -235,8 +224,8 @@ export default function CoursesScreen() {
           data={filteredSubjects}
           keyExtractor={(item) => item.subjectId.toString()}
           renderItem={({ item }) => {
-            const reqPrereqs = prereqsBySubject.get(item.subjectId) || [];
-            const reqCoreqs = coreqsBySubject.get(item.subjectId) || [];
+            const subjectPrerequisiteCodes = prerequisiteCodesBySubjectId.get(item.subjectId) || [];
+            const subjectCorequisiteCodes = corequisiteCodesBySubjectId.get(item.subjectId) || [];
 
             return (
               <View style={styles.card}>
@@ -252,21 +241,20 @@ export default function CoursesScreen() {
                 <Text style={styles.name}>{item.subjectName}</Text>
                 <Text style={styles.units}>{item.units} Units</Text>
 
-                {/* Prerequisite & Corequisite Badges */}
-                {(reqPrereqs.length > 0 || reqCoreqs.length > 0) && (
+                {(subjectPrerequisiteCodes.length > 0 || subjectCorequisiteCodes.length > 0) && (
                   <View style={styles.reqsBox}>
-                    {reqPrereqs.length > 0 && (
+                    {subjectPrerequisiteCodes.length > 0 && (
                       <View style={styles.reqRow}>
                         <GitBranch size={12} color="#dc2626" />
                         <Text style={styles.reqLabel}>Prereq:</Text>
-                        <Text style={styles.reqVal}>{reqPrereqs.join(', ')}</Text>
+                        <Text style={styles.reqVal}>{subjectPrerequisiteCodes.join(', ')}</Text>
                       </View>
                     )}
-                    {reqCoreqs.length > 0 && (
+                    {subjectCorequisiteCodes.length > 0 && (
                       <View style={styles.reqRow}>
                         <Layers size={12} color="#d97706" />
                         <Text style={styles.reqLabel}>Co-req:</Text>
-                        <Text style={styles.reqVal}>{reqCoreqs.join(', ')}</Text>
+                        <Text style={styles.reqVal}>{subjectCorequisiteCodes.join(', ')}</Text>
                       </View>
                     )}
                   </View>
@@ -282,7 +270,7 @@ export default function CoursesScreen() {
           }
         />
       )}
-    </View>
+    </ScreenContainer>
   );
 }
 

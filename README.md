@@ -1,28 +1,28 @@
 # UCB Course Prospectus & Subject Eligibility Planner
 
-Offline-first React Native (Expo) app for University of Cebu – Banilad. Lets a student plot and plan future subjects against the official course prospectus — evaluating prerequisite and co-requisite rules automatically — without any connection to the university portal.
+An offline-first React Native (Expo) app for University of Cebu, Banilad campus. It lets a student plot and plan future subjects against the official course prospectus, checking prerequisite and co-requisite rules automatically, with no connection to the university portal required.
 
-**Special project** — UCB-CCS. Instructor: DL Sanchez. Student: CH Tinoy.
+**Special project, UCB-CCS.** Instructor: DL Sanchez. Student: CH Tinoy.
 
 ## Problem
 
-Enrollment eligibility is currently checked manually by comparing a student's completed subjects against the prerequisite/co-requisite structure in the official syllabus. This is slow and error-prone. This app automates that comparison, fully offline.
+Right now, enrollment eligibility is checked manually by comparing a student's completed subjects against the prerequisite and co-requisite structure in the official syllabus. That process is slow and prone to mistakes. This app automates the comparison, entirely offline.
 
 ## Core flow
 
 ```
 Open app → Select program/curriculum → Select year level →
-Input completed subjects + grades → App evaluates prerequisites &
-co-requisites → Displays subjects eligible for the next term
+Input completed subjects and grades → App evaluates prerequisites
+and co-requisites → Displays subjects eligible for the next term
 ```
 
 ## Scope
 
 **In scope**
-- Import a program's curriculum (prerequisites, co-requisites, year/term layout) from bundled JSON
-- Record completed subjects and grades (Philippine 1.00–5.00 scale)
+- Import a program's curriculum (prerequisites, co-requisites, year and term layout) from bundled JSON
+- Record completed subjects and grades (Philippine 1.00 to 5.00 scale)
 - Compute subject eligibility for upcoming terms
-- Plot/plan subjects into future terms
+- Plot and plan subjects into future terms
 - Fully offline, single local student profile
 
 **Explicitly out of scope**
@@ -43,17 +43,28 @@ co-requisites → Displays subjects eligible for the next term
 ## Project structure
 
 ```
-/app                 Expo Router screens
-/components           Shared UI components
-/db
-  schema.sql          SQLite DDL (source of truth)
-  client.ts           expo-sqlite connection + migration runner
-  queries/             One file per table/domain (programs, subjects, completed, planned)
-/lib
-  eligibility.ts       Pure eligibility engine (no DB/React imports)
-  types.ts
-/data/curricula        Bundled per-program curriculum JSON files
-/hooks                 React hooks wrapping /db/queries for screens
+.
+├── app/                     # Expo Router screens (file-based routing)
+│   └── (tabs)/              # Plan, Subjects, Courses, Settings
+├── features/                # Domain logic, grouped by feature
+│   ├── eligibility/         # Pure eligibility engine, no DB or React imports
+│   ├── curriculum-import/   # Curriculum JSON import logic
+│   └── grades/              # PH grading scale helpers, status derivation
+├── db/
+│   ├── schema.sql           # SQLite DDL, source of truth
+│   ├── client.ts            # Connection + migration runner
+│   └── queries/             # One file per table/domain (programs, subjects, completed, planned)
+├── components/              # Dumb, reusable UI only
+│   └── ui/                  # Wrappers around @react-native-reuseable
+├── hooks/                   # Bridges queries to screens
+├── providers/               # Context providers (DB connection, theme)
+├── constants/               # Grading thresholds, term enums
+├── types/                   # Shared TS types
+├── utils/                   # Generic helpers (date, formatting)
+├── data/
+│   └── curricula/           # Bundled JSON per program and curriculum version
+├── assets/
+└── docs/                    # README.md, AGENTS.md, DATABASE_DESIGN.md
 ```
 
 ## Getting started
@@ -89,7 +100,7 @@ When you're ready, run:
 npm run reset-project
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+This moves the starter code into an **app-example** directory and creates a blank **app** directory so you can start developing from scratch.
 
 ```bash
 npx create-expo-app@latest uc-subject-planner-android-client
@@ -101,19 +112,19 @@ npx expo run:android
 
 ## Learn more
 
-To learn more about developing your project with Expo, look at the following resources:
+To learn more about developing your project with Expo, take a look at these resources:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- [Expo documentation](https://docs.expo.dev/): learn the fundamentals, or dig into advanced topics with the [guides](https://docs.expo.dev/guides).
+- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): a step-by-step tutorial where you build a project that runs on Android, iOS, and the web.
 
 ## Database
 
-See [`DATABASE_DESIGN.md`](./DATABASE_DESIGN.md) for the full schema, ER overview, grading rules, and the eligibility algorithm. DDL lives in [`schema.sql`](./schema.sql).
+See [`DATABASE_DESIGN.md`](./DATABASE_DESIGN.md) for the full schema, ER overview, grading rules, and the eligibility algorithm. DDL lives in [`schema.sql`](./db/schema.sql).
 
 ## Curriculum data
 
-Each program + curriculum version ships as a JSON file under `/data/curricula` and is imported into SQLite on first run (or via an import screen for updates). Format documented in `DATABASE_DESIGN.md`.
+Each program and curriculum version ships as a JSON file under `data/curricula` and gets imported into SQLite on first run, or through an import screen for updates. The format is documented in `DATABASE_DESIGN.md`.
 
 ## Status
 
-Planning stage — schema and architecture defined, implementation not started.
+Planning stage. Schema and architecture are defined, implementation hasn't started yet.

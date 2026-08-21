@@ -13,25 +13,24 @@ export interface ImportCurriculumResult {
  * Idempotently imports a validated curriculum package into the database inside a transaction.
  */
 export async function importCurriculumPackage(
-  data: unknown,
+  rawCurriculumData: unknown,
   sourceFileName?: string
 ): Promise<ImportCurriculumResult> {
-  const validation = validateCurriculumJson(data);
-  if (!validation.isValid || !validation.data) {
+  const validation = validateCurriculumJson(rawCurriculumData);
+  if (!validation.isValid || !validation.validatedPackage) {
     return {
       success: false,
-      errors: validation.errors.map((e) => `${e.field}: ${e.message}`),
+      errors: validation.errors.map((error) => `${error.field}: ${error.message}`),
     };
   }
 
-  const pkg: CurriculumPackageDto = validation.data;
+  const curriculumPackage: CurriculumPackageDto = validation.validatedPackage;
   const db = await getDatabase();
 
   try {
     let importedProgramId = 0;
 
     await db.withTransactionAsync(async () => {
-      // 1. Upsert into programs
       await db.runAsync(
         `INSERT INTO programs (program_code, program_name, curriculum_version, source_file, imported_at)
          VALUES (?, ?, ?, ?, datetime('now'))
@@ -39,42 +38,46 @@ export async function importCurriculumPackage(
            program_name = excluded.program_name,
            source_file = excluded.source_file,
            imported_at = datetime('now');`,
-        [pkg.program_code, pkg.program_name, pkg.curriculum_version, sourceFileName ?? null]
+        [
+          curriculumPackage.program_code,
+          curriculumPackage.program_name,
+          curriculumPackage.curriculum_version,
+          sourceFileName ?? null,
+        ]
       );
 
-      const progRow = await db.getFirstAsync<{ id: number }>(
+      const programRow = await db.getFirstAsync<{ id: number }>(
         'SELECT id FROM programs WHERE program_code = ? AND curriculum_version = ?;',
-        [pkg.program_code, pkg.curriculum_version]
+        [curriculumPackage.program_code, curriculumPackage.curriculum_version]
       );
 
-      if (!progRow) {
+      if (!programRow) {
         throw new Error('Failed to retrieve program ID after upsert.');
       }
-      importedProgramId = progRow.id;
+      importedProgramId = programRow.id;
 
-      // 2. Insert/upsert subjects and map to program_subjects
       const subjectCodeToIdMap = new Map<string, number>();
 
-      for (const subj of pkg.subjects) {
+      for (const subject of curriculumPackage.subjects) {
         await db.runAsync(
           `INSERT INTO subjects (subject_code, subject_name, units)
            VALUES (?, ?, ?)
            ON CONFLICT(subject_code) DO UPDATE SET
              subject_name = excluded.subject_name,
              units = excluded.units;`,
-          [subj.code, subj.name, subj.units]
+          [subject.code, subject.name, subject.units]
         );
 
-        const sRow = await db.getFirstAsync<{ id: number }>(
+        const subjectRow = await db.getFirstAsync<{ id: number }>(
           'SELECT id FROM subjects WHERE subject_code = ?;',
-          [subj.code]
+          [subject.code]
         );
 
-        if (!sRow) {
-          throw new Error(`Failed to resolve subject ID for ${subj.code}`);
+        if (!subjectRow) {
+          throw new Error(`Failed to resolve subject ID for ${subject.code}`);
         }
 
-        subjectCodeToIdMap.set(subj.code.toUpperCase(), sRow.id);
+        subjectCodeToIdMap.set(subject.code.toUpperCase(), subjectRow.id);
 
         await db.runAsync(
           `INSERT INTO program_subjects (program_id, subject_id, year_level, term)
@@ -82,54 +85,50 @@ export async function importCurriculumPackage(
            ON CONFLICT(program_id, subject_id) DO UPDATE SET
              year_level = excluded.year_level,
              term = excluded.term;`,
-          [importedProgramId, sRow.id, subj.year_level, subj.term]
+          [importedProgramId, subjectRow.id, subject.year_level, subject.term]
         );
       }
 
-      // 3. Clear existing program prerequisites & corequisites to ensure idempotent fresh state
       await db.runAsync('DELETE FROM prerequisites WHERE program_id = ?;', [importedProgramId]);
       await db.runAsync('DELETE FROM corequisites WHERE program_id = ?;', [importedProgramId]);
 
-      // 4. Insert prerequisites
-      if (pkg.prerequisites) {
-        for (const prereq of pkg.prerequisites) {
-          const subjectId = subjectCodeToIdMap.get(prereq.subject.toUpperCase());
-          const prereqSubjectId = subjectCodeToIdMap.get(prereq.requires.toUpperCase());
+      if (curriculumPackage.prerequisites) {
+        for (const prerequisite of curriculumPackage.prerequisites) {
+          const subjectId = subjectCodeToIdMap.get(prerequisite.subject.toUpperCase());
+          const prerequisiteSubjectId = subjectCodeToIdMap.get(prerequisite.requires.toUpperCase());
 
-          if (subjectId && prereqSubjectId) {
+          if (subjectId && prerequisiteSubjectId) {
             await db.runAsync(
               `INSERT INTO prerequisites (program_id, subject_id, prerequisite_subject_id)
                VALUES (?, ?, ?)
                ON CONFLICT(program_id, subject_id, prerequisite_subject_id) DO NOTHING;`,
-              [importedProgramId, subjectId, prereqSubjectId]
+              [importedProgramId, subjectId, prerequisiteSubjectId]
             );
           }
         }
       }
 
-      // 5. Insert corequisites
-      if (pkg.corequisites) {
-        for (const coreq of pkg.corequisites) {
-          const subjectId = subjectCodeToIdMap.get(coreq.subject.toUpperCase());
-          const coreqSubjectId = subjectCodeToIdMap.get(coreq.with.toUpperCase());
+      if (curriculumPackage.corequisites) {
+        for (const corequisite of curriculumPackage.corequisites) {
+          const subjectId = subjectCodeToIdMap.get(corequisite.subject.toUpperCase());
+          const corequisiteSubjectId = subjectCodeToIdMap.get(corequisite.with.toUpperCase());
 
-          if (subjectId && coreqSubjectId) {
+          if (subjectId && corequisiteSubjectId) {
             await db.runAsync(
               `INSERT INTO corequisites (program_id, subject_id, corequisite_subject_id)
                VALUES (?, ?, ?)
                ON CONFLICT(program_id, subject_id, corequisite_subject_id) DO NOTHING;`,
-              [importedProgramId, subjectId, coreqSubjectId]
+              [importedProgramId, subjectId, corequisiteSubjectId]
             );
           }
         }
       }
 
-      // 6. Set active student profile program_id if none is set yet
-      const profile = await db.getFirstAsync<{ program_id: number | null }>(
+      const currentProfile = await db.getFirstAsync<{ program_id: number | null }>(
         'SELECT program_id FROM student_profile WHERE id = 1;'
       );
 
-      if (!profile || profile.program_id === null) {
+      if (!currentProfile || currentProfile.program_id === null) {
         await db.runAsync(
           `INSERT INTO student_profile (id, program_id, current_year_level, updated_at)
            VALUES (1, ?, 1, datetime('now'))
@@ -142,10 +141,10 @@ export async function importCurriculumPackage(
     return {
       success: true,
       programId: importedProgramId,
-      message: `Successfully imported ${pkg.program_code} (${pkg.curriculum_version}).`,
+      message: `Successfully imported ${curriculumPackage.program_code} (${curriculumPackage.curriculum_version}).`,
     };
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unknown database error';
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Unknown database error';
     return {
       success: false,
       errors: [message],

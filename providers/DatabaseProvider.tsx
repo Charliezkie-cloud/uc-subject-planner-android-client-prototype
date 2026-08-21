@@ -3,7 +3,7 @@ import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { getDatabase } from '@/db/client';
 import { getAllPrograms, getStudentProfile, updateStudentProfile } from '@/db/queries/programs';
 import { importCurriculumPackage } from '@/db/queries/curriculumImport';
-import bsit2023Data from '../../data/curricula/bsit-2023.json';
+import bsit2023Data from '../data/curricula/bsit-2023.json';
 
 interface DatabaseContextValue {
   isReady: boolean;

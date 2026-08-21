@@ -2,7 +2,7 @@ import { validateCurriculumJson } from './importCurriculum';
 
 describe('Curriculum Import Validator', () => {
   it('validates a correct curriculum package', () => {
-    const validData = {
+    const validCurriculumPackage = {
       program_code: 'BSIT',
       program_name: 'BS Information Technology',
       curriculum_version: '2023',
@@ -17,13 +17,13 @@ describe('Curriculum Import Validator', () => {
       corequisites: [],
     };
 
-    const result = validateCurriculumJson(validData);
-    expect(result.isValid).toBe(true);
-    expect(result.errors).toHaveLength(0);
+    const validationResult = validateCurriculumJson(validCurriculumPackage);
+    expect(validationResult.isValid).toBe(true);
+    expect(validationResult.errors).toHaveLength(0);
   });
 
   it('catches missing program metadata', () => {
-    const invalidData = {
+    const invalidCurriculumPackage = {
       program_code: '',
       program_name: 'BS Information Technology',
       curriculum_version: '2023',
@@ -32,13 +32,13 @@ describe('Curriculum Import Validator', () => {
       ],
     };
 
-    const result = validateCurriculumJson(invalidData);
-    expect(result.isValid).toBe(false);
-    expect(result.errors.some(e => e.field === 'program_code')).toBe(true);
+    const validationResult = validateCurriculumJson(invalidCurriculumPackage);
+    expect(validationResult.isValid).toBe(false);
+    expect(validationResult.errors.some((error) => error.field === 'program_code')).toBe(true);
   });
 
   it('catches nonexistent subject reference in prerequisites', () => {
-    const invalidData = {
+    const invalidCurriculumPackage = {
       program_code: 'BSIT',
       program_name: 'BS Information Technology',
       curriculum_version: '2023',
@@ -50,13 +50,13 @@ describe('Curriculum Import Validator', () => {
       ],
     };
 
-    const result = validateCurriculumJson(invalidData);
-    expect(result.isValid).toBe(false);
-    expect(result.errors.some(e => e.field.includes('prerequisites'))).toBe(true);
+    const validationResult = validateCurriculumJson(invalidCurriculumPackage);
+    expect(validationResult.isValid).toBe(false);
+    expect(validationResult.errors.some((error) => error.field.includes('prerequisites'))).toBe(true);
   });
 
   it('catches self-referencing prerequisite', () => {
-    const invalidData = {
+    const invalidCurriculumPackage = {
       program_code: 'BSIT',
       program_name: 'BS Information Technology',
       curriculum_version: '2023',
@@ -68,8 +68,9 @@ describe('Curriculum Import Validator', () => {
       ],
     };
 
-    const result = validateCurriculumJson(invalidData);
-    expect(result.isValid).toBe(false);
-    expect(result.errors.some(e => e.message.includes('cannot be a prerequisite of itself'))).toBe(true);
+    const validationResult = validateCurriculumJson(invalidCurriculumPackage);
+    expect(validationResult.isValid).toBe(false);
+    expect(validationResult.errors.some((error) => error.message.includes('cannot be a prerequisite of itself'))).toBe(true);
   });
 });
+

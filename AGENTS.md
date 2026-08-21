@@ -1,10 +1,10 @@
-# Expo HAS CHANGED
-
-Read the exact versioned docs at https://docs.expo.dev/versions/v54.0.0/ before writing any code.
-
 # AGENTS.md
 
 Context for AI coding agents (Claude Code, etc.) working in this repository.
+
+## Expo HAS CHANGED
+
+Read the exact versioned docs at https://docs.expo.dev/versions/v54.0.0/ before writing any code.
 
 ## Project
 
@@ -16,7 +16,7 @@ Offline React Native/Expo app: students plot subjects against a curriculum's pre
 - **Never simulate a university portal connection.** Completed-subject data only ever enters via manual input or JSON import, never automatic sync.
 - **Never implement actual enrollment/registration actions or write to any external system.** This app only computes and displays eligibility.
 - **Single student profile.** `student_profile` table is a single row (`id = 1`, enforced by `CHECK`). Don't build multi-student list UI unless the project scope changes.
-
+- **No messy or misleading code.** Variable and function names must say exactly what they hold or do; no vague names like `data`, `temp`, `handleStuff`, or abbreviations that need guessing. No dead code, no commented-out blocks left in. Comments only explain *why* when the reasoning isn't obvious from the code itself, never *what* the code does if that's already clear from reading it.
 ## Tech stack
 
 - React Native + Expo, target platform Android

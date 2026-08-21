@@ -38,7 +38,6 @@ export function SubjectCard({
 
   return (
     <Card className="my-2 mx-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
-      {/* Top row: Code, Title, Eligibility/Status Badge */}
       <View className="flex-row justify-between items-start">
         <View className="flex-1 pr-3">
           <View className="flex-row items-center gap-2">
@@ -55,7 +54,6 @@ export function SubjectCard({
         {eligibility && <EligibilityBadge status={eligibility.status} />}
       </View>
 
-      {/* Meta Row: Units & Grade Summary */}
       <View className="flex-row justify-between items-center mt-2 pt-2 border-t border-slate-100">
         <Text className="text-xs font-semibold text-slate-500">{units} Units</Text>
 
@@ -74,7 +72,6 @@ export function SubjectCard({
         )}
       </View>
 
-      {/* Missing Requirements List */}
       {isNotEligible && eligibility && (
         <View className="mt-2.5 p-2.5 bg-red-50/80 border border-red-200 rounded-lg">
           <View className="flex-row items-center gap-1.5 mb-1">
@@ -94,7 +91,6 @@ export function SubjectCard({
         </View>
       )}
 
-      {/* Action Buttons */}
       <View className="flex-row items-center justify-end gap-2 mt-3 pt-2 border-t border-slate-100">
         {onGradePress && (
           <TouchableOpacity

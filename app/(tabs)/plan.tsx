@@ -23,6 +23,7 @@ import {
   CheckCircle2,
   Calendar,
 } from 'lucide-react-native';
+import { ScreenContainer } from '@/components/ui/ScreenContainer';
 
 type FilterMode = 'curriculum' | 'eligible' | 'all';
 
@@ -31,7 +32,6 @@ export default function PlanScreen() {
   const [selectedTermNumber, setSelectedTermNumber] = useState<number>(1);
   const [filterMode, setFilterMode] = useState<FilterMode>('curriculum');
 
-  // Compute school year based on year level
   const baseYear = 2025;
   const currentSchoolYear = `${baseYear + selectedYearLevel - 1}-${baseYear + selectedYearLevel}`;
 
@@ -56,39 +56,35 @@ export default function PlanScreen() {
     recordGrade,
   } = useEligibility(targetTerm);
 
-  // Modal State for grading
   const [gradeModalVisible, setGradeModalVisible] = useState(false);
   const [gradingSubject, setGradingSubject] = useState<ProgramSubjectDetail | null>(null);
 
-  // Filter subjects based on active tab and term
   const displayedSubjects = useMemo(() => {
     if (filterMode === 'curriculum') {
       return subjects.filter(
-        (s) => s.yearLevel === selectedYearLevel && s.term === selectedTermNumber
+        (subject) => subject.yearLevel === selectedYearLevel && subject.term === selectedTermNumber
       );
     }
     if (filterMode === 'eligible') {
-      return subjects.filter((s) => {
-        const res = eligibilityMap.get(s.subjectId);
-        return res?.status === 'eligible';
+      return subjects.filter((subject) => {
+        return eligibilityMap.get(subject.subjectId)?.status === 'eligible';
       });
     }
     return subjects;
   }, [subjects, selectedYearLevel, selectedTermNumber, filterMode, eligibilityMap]);
 
-  // Compute stats for current view
   const stats = useMemo(() => {
     let eligibleCount = 0;
     let passedCount = 0;
     let plannedUnits = 0;
     let totalCurriculumUnits = 0;
 
-    for (const s of displayedSubjects) {
-      totalCurriculumUnits += s.units;
-      const res = eligibilityMap.get(s.subjectId);
-      if (res?.status === 'eligible') eligibleCount++;
-      if (res?.status === 'passed') passedCount++;
-      if (plannedSubjectIds.has(s.subjectId)) plannedUnits += s.units;
+    for (const subject of displayedSubjects) {
+      totalCurriculumUnits += subject.units;
+      const eligibilityResult = eligibilityMap.get(subject.subjectId);
+      if (eligibilityResult?.status === 'eligible') eligibleCount++;
+      if (eligibilityResult?.status === 'passed') passedCount++;
+      if (plannedSubjectIds.has(subject.subjectId)) plannedUnits += subject.units;
     }
 
     return { eligibleCount, passedCount, plannedUnits, totalCurriculumUnits };
@@ -157,8 +153,7 @@ export default function PlanScreen() {
   const isLastTerm = selectedYearLevel === 4 && selectedTermNumber === 2;
 
   return (
-    <View style={styles.container}>
-      {/* Header with Active Program */}
+    <ScreenContainer style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerRow}>
           <View style={styles.headerTitleGroup}>
@@ -178,49 +173,46 @@ export default function PlanScreen() {
           </View>
         </View>
 
-        {/* Year Level Tabs */}
         <View style={styles.yearLevelRow}>
-          {YEAR_LEVELS.map((yr) => (
+          {YEAR_LEVELS.map((yearLevel) => (
             <TouchableOpacity
-              key={yr.id}
+              key={yearLevel.id}
               style={[
                 styles.yearTab,
-                selectedYearLevel === yr.id && styles.yearTabActive,
+                selectedYearLevel === yearLevel.id && styles.yearTabActive,
               ]}
-              onPress={() => setSelectedYearLevel(yr.id)}>
+              onPress={() => setSelectedYearLevel(yearLevel.id)}>
               <Text
                 style={[
                   styles.yearTabText,
-                  selectedYearLevel === yr.id && styles.yearTabTextActive,
+                  selectedYearLevel === yearLevel.id && styles.yearTabTextActive,
                 ]}>
-                {yr.label}
+                {yearLevel.label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Term Tabs */}
         <View style={styles.termRow}>
-          {TERMS.slice(0, 2).map((t) => (
+          {TERMS.slice(0, 2).map((termOption) => (
             <TouchableOpacity
-              key={t.id}
+              key={termOption.id}
               style={[
                 styles.termTab,
-                selectedTermNumber === t.id && styles.termTabActive,
+                selectedTermNumber === termOption.id && styles.termTabActive,
               ]}
-              onPress={() => setSelectedTermNumber(t.id)}>
+              onPress={() => setSelectedTermNumber(termOption.id)}>
               <Text
                 style={[
                   styles.termTabText,
-                  selectedTermNumber === t.id && styles.termTabTextActive,
+                  selectedTermNumber === termOption.id && styles.termTabTextActive,
                 ]}>
-                {t.label}
+                {termOption.label}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Filter Chips & Stats */}
         <View style={styles.filterSection}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
             <TouchableOpacity
@@ -273,7 +265,6 @@ export default function PlanScreen() {
         </View>
       </View>
 
-      {/* Main Subjects List */}
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#0284c7" />
@@ -284,7 +275,7 @@ export default function PlanScreen() {
           data={displayedSubjects}
           keyExtractor={(item) => item.subjectId.toString()}
           renderItem={({ item }) => {
-            const elig = eligibilityMap.get(item.subjectId);
+            const eligibilityResult = eligibilityMap.get(item.subjectId);
             const status = subjectStatusesMap.get(item.subjectId);
             const isPlanned = plannedSubjectIds.has(item.subjectId);
 
@@ -295,7 +286,7 @@ export default function PlanScreen() {
                 units={item.units}
                 yearLevel={item.yearLevel}
                 term={item.term}
-                eligibility={elig}
+                eligibility={eligibilityResult}
                 currentGrade={status?.grade}
                 attemptNumber={status?.attemptNumber}
                 isPlanned={isPlanned}
@@ -318,7 +309,6 @@ export default function PlanScreen() {
         />
       )}
 
-      {/* Bottom Sticky Action Bar */}
       <View style={styles.bottomBar}>
         <View style={styles.bottomSummary}>
           <View style={styles.summaryItem}>
@@ -355,7 +345,6 @@ export default function PlanScreen() {
         </View>
       </View>
 
-      {/* Grade Entry Modal */}
       {gradingSubject && (
         <GradeModal
           visible={gradeModalVisible}
@@ -371,7 +360,7 @@ export default function PlanScreen() {
           onSubmit={handleSaveGrade}
         />
       )}
-    </View>
+    </ScreenContainer>
   );
 }
 
