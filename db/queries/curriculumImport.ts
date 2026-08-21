@@ -1,6 +1,9 @@
 import { getDatabase } from '../client';
 import { CurriculumPackageDto } from '@/features/curriculum-import/types';
-import { validateCurriculumJson } from '@/features/curriculum-import/importCurriculum';
+import {
+  expandYearRangePrerequisites,
+  validateCurriculumJson,
+} from '@/features/curriculum-import/importCurriculum';
 
 export interface ImportCurriculumResult {
   success: boolean;
@@ -91,9 +94,12 @@ export async function importCurriculumPackage(
 
       await db.runAsync('DELETE FROM prerequisites WHERE program_id = ?;', [importedProgramId]);
       await db.runAsync('DELETE FROM corequisites WHERE program_id = ?;', [importedProgramId]);
+      await db.runAsync('DELETE FROM year_range_prerequisites WHERE program_id = ?;', [importedProgramId]);
 
-      if (curriculumPackage.prerequisites) {
-        for (const prerequisite of curriculumPackage.prerequisites) {
+      const prerequisites = curriculumPackage.prerequisites ?? [];
+
+      if (prerequisites.length > 0) {
+        for (const prerequisite of prerequisites) {
           const subjectId = subjectCodeToIdMap.get(prerequisite.subject.toUpperCase());
           const prerequisiteSubjectId = subjectCodeToIdMap.get(prerequisite.requires.toUpperCase());
 
@@ -103,6 +109,21 @@ export async function importCurriculumPackage(
                VALUES (?, ?, ?)
                ON CONFLICT(program_id, subject_id, prerequisite_subject_id) DO NOTHING;`,
               [importedProgramId, subjectId, prerequisiteSubjectId]
+            );
+          }
+        }
+      }
+
+      if (curriculumPackage.year_range_prerequisites) {
+        for (const yearRangePrerequisite of curriculumPackage.year_range_prerequisites) {
+          const subjectId = subjectCodeToIdMap.get(yearRangePrerequisite.subject.toUpperCase());
+
+          if (subjectId) {
+            await db.runAsync(
+              `INSERT INTO year_range_prerequisites (program_id, subject_id, through_year_level)
+               VALUES (?, ?, ?)
+               ON CONFLICT(program_id, subject_id, through_year_level) DO NOTHING;`,
+              [importedProgramId, subjectId, yearRangePrerequisite.through_year_level]
             );
           }
         }

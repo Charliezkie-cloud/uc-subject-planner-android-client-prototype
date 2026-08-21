@@ -25,8 +25,8 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
   const initDb = async () => {
     try {
       await getDatabase();
-      // Import any bundled prospectus versions not yet in SQLite (supports multiple per program).
-      await seedBundledCurricula(false);
+      // Ensure all bundled prospectus versions in SQLite are synced with latest JSON definitions.
+      await seedBundledCurricula(true);
       const currentPrograms = await getAllPrograms();
 
       const profile = await getStudentProfile();

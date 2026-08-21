@@ -1,4 +1,8 @@
-import { CurriculumPackageDto } from './types';
+import {
+  CurriculumPackageDto,
+  CurriculumPrerequisiteDto,
+  CurriculumYearRangePrerequisiteDto,
+} from './types';
 
 export interface ValidationError {
   field: string;
@@ -9,6 +13,20 @@ export interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
   validatedPackage?: CurriculumPackageDto;
+}
+
+export function expandYearRangePrerequisites(
+  subjects: CurriculumPackageDto['subjects'],
+  yearRangePrerequisites: CurriculumYearRangePrerequisiteDto[] = []
+): CurriculumPrerequisiteDto[] {
+  return yearRangePrerequisites.flatMap((yearRangePrerequisite) =>
+    subjects
+      .filter((subject) => subject.year_level <= yearRangePrerequisite.through_year_level)
+      .map((subject) => ({
+        subject: yearRangePrerequisite.subject,
+        requires: subject.code,
+      }))
+  );
 }
 
 export function validateCurriculumJson(json: unknown): ValidationResult {
@@ -38,8 +56,9 @@ export function validateCurriculumJson(json: unknown): ValidationResult {
   if (!Array.isArray(rawCurriculum.subjects) || rawCurriculum.subjects.length === 0) {
     errors.push({ field: 'subjects', message: 'Curriculum must contain a non-empty subjects array.' });
   } else {
+    const subjectEntries = rawCurriculum.subjects;
     const subjectCodes = new Set<string>();
-    rawCurriculum.subjects.forEach((subjectEntry, subjectIndex) => {
+    subjectEntries.forEach((subjectEntry, subjectIndex) => {
       if (!subjectEntry || typeof subjectEntry !== 'object') {
         errors.push({ field: `subjects[${subjectIndex}]`, message: 'Subject entry must be an object.' });
         return;
@@ -87,6 +106,48 @@ export function validateCurriculumJson(json: unknown): ValidationResult {
       });
     }
 
+    if (Array.isArray(rawCurriculum.year_range_prerequisites)) {
+      rawCurriculum.year_range_prerequisites.forEach((yearRangeEntry, yearRangeIndex) => {
+        if (!yearRangeEntry || typeof yearRangeEntry !== 'object') return;
+        const yearRangePrerequisite = yearRangeEntry as Record<string, unknown>;
+        const subjectCode = yearRangePrerequisite.subject;
+        const throughYearLevel = yearRangePrerequisite.through_year_level;
+
+        if (typeof subjectCode !== 'string' || typeof throughYearLevel !== 'number') {
+          errors.push({
+            field: `year_range_prerequisites[${yearRangeIndex}]`,
+            message: 'Year-range prerequisite must have a subject code and through_year_level.',
+          });
+          return;
+        }
+
+        const normalizedSubjectCode = subjectCode.trim().toUpperCase();
+        const targetSubject = subjectEntries.find((subjectEntry) => {
+          if (!subjectEntry || typeof subjectEntry !== 'object') return false;
+          const subject = subjectEntry as Record<string, unknown>;
+          return typeof subject.code === 'string' && subject.code.trim().toUpperCase() === normalizedSubjectCode;
+        }) as Record<string, unknown> | undefined;
+
+        if (!subjectCodes.has(normalizedSubjectCode)) {
+          errors.push({
+            field: `year_range_prerequisites[${yearRangeIndex}].subject`,
+            message: `Subject "${subjectCode}" not found in subjects list.`,
+          });
+        }
+        if (!Number.isInteger(throughYearLevel) || throughYearLevel < 1 || throughYearLevel > 5) {
+          errors.push({
+            field: `year_range_prerequisites[${yearRangeIndex}].through_year_level`,
+            message: 'through_year_level must be a whole number between 1 and 5.',
+          });
+        } else if (targetSubject && typeof targetSubject.year_level === 'number' && targetSubject.year_level <= throughYearLevel) {
+          errors.push({
+            field: `year_range_prerequisites[${yearRangeIndex}]`,
+            message: 'A year-range prerequisite cannot include the subject itself.',
+          });
+        }
+      });
+    }
+
     if (Array.isArray(rawCurriculum.corequisites)) {
       rawCurriculum.corequisites.forEach((corequisiteEntry, corequisiteIndex) => {
         if (!corequisiteEntry || typeof corequisiteEntry !== 'object') return;
@@ -114,4 +175,3 @@ export function validateCurriculumJson(json: unknown): ValidationResult {
     validatedPackage: errors.length === 0 ? (json as CurriculumPackageDto) : undefined,
   };
 }
-

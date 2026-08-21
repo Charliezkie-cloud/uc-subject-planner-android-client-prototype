@@ -32,11 +32,20 @@ export interface PlannedSubjectInput {
   plannedTerm: number;
 }
 
+export type MissingRequirementType = 'prerequisite' | 'corequisite';
+
 export interface MissingRequirement {
-  type: 'prerequisite' | 'corequisite';
+  type: MissingRequirementType;
   subjectId: number;
   subjectCode: string;
   subjectName?: string;
+  reason: string;
+}
+
+export interface MissingYearRangeRequirement {
+  type: 'year_range_prerequisite';
+  throughYearLevel: number;
+  unmetSubjectCount: number;
   reason: string;
 }
 
@@ -50,13 +59,20 @@ export interface SubjectEligibilityResult {
   isPassed: boolean;
   missingPrerequisites: MissingRequirement[];
   missingCorequisites: MissingRequirement[];
+  missingYearRangePrerequisites: MissingYearRangeRequirement[];
   unmetRequirementsCount: number;
+}
+
+export interface YearRangePrerequisiteEdge {
+  subjectId: number;
+  throughYearLevel: number;
 }
 
 export interface EvaluateEligibilityParams {
   subjects: SubjectInput[];
   prerequisites: PrerequisiteEdge[];
   corequisites: CorequisiteEdge[];
+  yearRangePrerequisites?: YearRangePrerequisiteEdge[];
   subjectStatuses: SubjectStatusInput[];
   plannedSubjects: PlannedSubjectInput[];
   targetPlanningTerm?: {

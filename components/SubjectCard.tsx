@@ -48,9 +48,9 @@ export function SubjectCard({
   const canMovePlan = Boolean(onMovePlan) && !isPassed && (isPlanned || Boolean(plannedElsewhereLabel));
 
   return (
-    <Card className="my-2 mx-4 p-4 bg-white border border-slate-200 rounded-xl shadow-sm">
+    <Card className="my-1.5 mx-4 gap-0 p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
       <View className="flex-row justify-between items-start">
-        <View className="flex-1 pr-3">
+        <View className="flex-1 pr-2">
           <View className="flex-row items-center gap-2 flex-wrap">
             <CardTitle className="text-base font-bold text-slate-900">{subjectCode}</CardTitle>
             {isPlanned && (
@@ -72,7 +72,7 @@ export function SubjectCard({
         {eligibility && <EligibilityBadge status={eligibility.status} />}
       </View>
 
-      <View className="flex-row justify-between items-center mt-2 pt-2 border-t border-slate-100">
+      <View className="flex-row justify-between items-center mt-1.5 pt-1.5 border-t border-slate-100">
         <Text className="text-xs font-semibold text-slate-500">{units} Units</Text>
 
         {currentGrade !== undefined && (
@@ -91,7 +91,7 @@ export function SubjectCard({
       </View>
 
       {isNotEligible && eligibility && (
-        <View className="mt-2.5 p-2.5 bg-red-50/80 border border-red-200 rounded-lg">
+        <View className="mt-2 p-2 bg-red-50/80 border border-red-200 rounded-lg">
           <View className="flex-row items-center gap-1.5 mb-1">
             <AlertCircle size={14} color="#dc2626" />
             <Text className="text-xs font-bold text-red-800">Prerequisite / Co-requisite Required:</Text>
@@ -101,6 +101,23 @@ export function SubjectCard({
               • Prereq required: <Text className="font-bold">{prereq.subjectCode}</Text> (Must be passed first)
             </Text>
           ))}
+          {eligibility.missingYearRangePrerequisites?.map((yrPrereq) => {
+            const ordinal = (n: number) => {
+              if (n === 1) return '1st';
+              if (n === 2) return '2nd';
+              if (n === 3) return '3rd';
+              return `${n}th`;
+            };
+            const requirementText =
+              yrPrereq.throughYearLevel === 1
+                ? 'Requires all 1st subjects'
+                : `Requires all 1st to ${ordinal(yrPrereq.throughYearLevel)} subjects`;
+            return (
+              <Text key={yrPrereq.throughYearLevel} className="text-xs text-red-700 ml-4 mt-0.5">
+                • <Text className="font-bold">{requirementText}</Text> (Must be passed first)
+              </Text>
+            );
+          })}
           {eligibility.missingCorequisites.map((coreq) => (
             <Text key={coreq.subjectId} className="text-xs text-amber-800 ml-4 mt-0.5">
               • Co-requisite: <Text className="font-bold">{coreq.subjectCode}</Text> (Must be passed or planned in this term first)
@@ -110,7 +127,7 @@ export function SubjectCard({
       )}
 
       {(canInputGrade || canTogglePlan || canMovePlan) && (
-        <View className="flex-row items-center justify-end gap-2 mt-3 pt-2 border-t border-slate-100 flex-wrap">
+        <View className="flex-row items-center justify-end gap-2 mt-2 pt-1.5 border-t border-slate-100 flex-wrap">
           {canInputGrade && (
             <TouchableOpacity
               onPress={onGradePress}

@@ -28,10 +28,11 @@ import {
   Layers,
   CheckCircle2,
   Calendar,
+  AlertCircle,
 } from 'lucide-react-native';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 
-type FilterMode = 'curriculum' | 'eligible';
+type FilterMode = 'curriculum' | 'eligible' | 'notEligible';
 
 const MAX_PLAN_YEAR_LEVEL = PLAN_YEAR_LEVELS[PLAN_YEAR_LEVELS.length - 1].id;
 
@@ -103,12 +104,26 @@ export default function PlanScreen() {
     );
   }, [subjectsForSelectedTerm, eligibilityMap]);
 
+  const notEligibleSubjectsForSelectedTerm = useMemo(() => {
+    return subjectsForSelectedTerm.filter(
+      (subject) => eligibilityMap.get(subject.subjectId)?.status === 'not_eligible'
+    );
+  }, [subjectsForSelectedTerm, eligibilityMap]);
+
   const displayedSubjects = useMemo(() => {
     if (filterMode === 'eligible') {
       return eligibleSubjectsForSelectedTerm;
     }
+    if (filterMode === 'notEligible') {
+      return notEligibleSubjectsForSelectedTerm;
+    }
     return subjectsForSelectedTerm;
-  }, [filterMode, subjectsForSelectedTerm, eligibleSubjectsForSelectedTerm]);
+  }, [
+    filterMode,
+    subjectsForSelectedTerm,
+    eligibleSubjectsForSelectedTerm,
+    notEligibleSubjectsForSelectedTerm,
+  ]);
 
   const stats = useMemo(() => {
     let passedCount = 0;
@@ -124,6 +139,7 @@ export default function PlanScreen() {
 
     return {
       eligibleCount: eligibleSubjectsForSelectedTerm.length,
+      notEligibleCount: notEligibleSubjectsForSelectedTerm.length,
       passedCount,
       plannedUnits,
       totalCurriculumUnits,
@@ -133,6 +149,7 @@ export default function PlanScreen() {
     eligibilityMap,
     plannedSubjectIds,
     eligibleSubjectsForSelectedTerm,
+    notEligibleSubjectsForSelectedTerm,
   ]);
 
   const handleOpenGradeModal = (subject: ProgramSubjectDetail) => {
@@ -220,8 +237,6 @@ export default function PlanScreen() {
       });
       setMoveModalVisible(false);
       setMovingSubject(null);
-      setSelectedYearLevel(destination.yearLevel);
-      setSelectedTermNumber(destination.term);
     } catch (err) {
       console.error('Failed to move planned subject', err);
       Alert.alert('Error', 'Failed to move subject to the selected term.');
@@ -381,6 +396,25 @@ export default function PlanScreen() {
                 All Eligible Now ({stats.eligibleCount})
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.filterChip,
+                filterMode === 'notEligible' && styles.filterChipActive,
+              ]}
+              onPress={() => setFilterMode('notEligible')}>
+              <AlertCircle
+                size={13}
+                color={filterMode === 'notEligible' ? '#0284c7' : '#64748b'}
+              />
+              <Text
+                style={[
+                  styles.filterChipText,
+                  filterMode === 'notEligible' && styles.filterChipTextActive,
+                ]}>
+                Not Eligible ({stats.notEligibleCount})
+              </Text>
+            </TouchableOpacity>
           </ScrollView>
         </View>
       </View>
@@ -438,7 +472,9 @@ export default function PlanScreen() {
               <Text style={styles.emptyText}>
                 {filterMode === 'eligible'
                   ? `No subjects are currently eligible for Year ${selectedYearLevel} Term ${selectedTermNumber}.`
-                  : selectedYearLevel > 4
+                  : filterMode === 'notEligible'
+                    ? `All subjects are eligible or already passed for Year ${selectedYearLevel} Term ${selectedTermNumber}.`
+                    : selectedYearLevel > 4
                     ? 'No curriculum subjects for 5th year. Use Move Term to place deferred subjects here.'
                     : 'No curriculum subjects assigned for this year and term.'}
               </Text>

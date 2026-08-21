@@ -59,6 +59,15 @@ CREATE TABLE IF NOT EXISTS corequisites (
   CHECK (subject_id != corequisite_subject_id)
 );
 
+-- Year-range prerequisite rules (e.g. requires all subjects from Year 1 through through_year_level).
+CREATE TABLE IF NOT EXISTS year_range_prerequisites (
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  program_id         INTEGER NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+  subject_id         INTEGER NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+  through_year_level INTEGER NOT NULL CHECK (through_year_level >= 1 AND through_year_level <= 5),
+  UNIQUE (program_id, subject_id, through_year_level)
+);
+
 -- Single local student profile. App enforces exactly one row (id = 1).
 CREATE TABLE IF NOT EXISTS student_profile (
   id                 INTEGER PRIMARY KEY CHECK (id = 1),
@@ -112,8 +121,9 @@ CREATE TABLE IF NOT EXISTS app_settings (
   value TEXT NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_program_subjects_program ON program_subjects(program_id);
-CREATE INDEX IF NOT EXISTS idx_prereq_subject           ON prerequisites(subject_id);
-CREATE INDEX IF NOT EXISTS idx_coreq_subject            ON corequisites(subject_id);
-CREATE INDEX IF NOT EXISTS idx_completed_subject        ON completed_subjects(subject_id);
-CREATE INDEX IF NOT EXISTS idx_planned_term             ON planned_subjects(planned_school_year, planned_term);
+CREATE INDEX IF NOT EXISTS idx_program_subjects_program    ON program_subjects(program_id);
+CREATE INDEX IF NOT EXISTS idx_prereq_subject              ON prerequisites(subject_id);
+CREATE INDEX IF NOT EXISTS idx_coreq_subject               ON corequisites(subject_id);
+CREATE INDEX IF NOT EXISTS idx_year_range_prereq_subject   ON year_range_prerequisites(subject_id);
+CREATE INDEX IF NOT EXISTS idx_completed_subject           ON completed_subjects(subject_id);
+CREATE INDEX IF NOT EXISTS idx_planned_term                ON planned_subjects(planned_school_year, planned_term);

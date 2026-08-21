@@ -38,6 +38,13 @@ export interface Corequisite {
   corequisiteSubjectId: number;
 }
 
+export interface YearRangePrerequisite {
+  id: number;
+  programId: number;
+  subjectId: number;
+  throughYearLevel: number;
+}
+
 export interface StudentProfile {
   id: number;
   programId: number | null;

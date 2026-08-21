@@ -11,6 +11,11 @@ export interface CurriculumPrerequisiteDto {
   requires: string;
 }
 
+export interface CurriculumYearRangePrerequisiteDto {
+  subject: string;
+  through_year_level: number;
+}
+
 export interface CurriculumCorequisiteDto {
   subject: string;
   with: string;
@@ -22,5 +27,6 @@ export interface CurriculumPackageDto {
   curriculum_version: string;
   subjects: CurriculumSubjectDto[];
   prerequisites?: CurriculumPrerequisiteDto[];
+  year_range_prerequisites?: CurriculumYearRangePrerequisiteDto[];
   corequisites?: CurriculumCorequisiteDto[];
 }

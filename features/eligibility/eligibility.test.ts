@@ -158,4 +158,92 @@ describe('Eligibility Engine', () => {
     const cs102Result = evaluationResults.get(2);
     expect(cs102Result?.isEligible).toBe(true);
   });
+
+  describe('Year-range prerequisites', () => {
+    const curriculumSubjects: SubjectInput[] = [
+      { id: 1, subjectCode: 'CS11', subjectName: 'Prog 1', units: 3, yearLevel: 1, term: 1 },
+      { id: 2, subjectCode: 'CS12', subjectName: 'Prog 2', units: 3, yearLevel: 1, term: 2 },
+      { id: 3, subjectCode: 'CS21', subjectName: 'Data Struct', units: 3, yearLevel: 2, term: 1 },
+      { id: 4, subjectCode: 'CS22', subjectName: 'Web Dev', units: 3, yearLevel: 2, term: 2 },
+      { id: 5, subjectCode: 'CS31', subjectName: 'Software Eng', units: 3, yearLevel: 3, term: 1 },
+      { id: 6, subjectCode: 'CS41', subjectName: 'Practicum', units: 3, yearLevel: 4, term: 1 },
+    ];
+
+    it('blocks a subject when year-range prerequisites through a given year are not yet completed', () => {
+      const evaluationResults = evaluateEligibility({
+        subjects: curriculumSubjects,
+        prerequisites: [],
+        corequisites: [],
+        yearRangePrerequisites: [
+          { subjectId: 6, throughYearLevel: 2 }, // Practicum requires all year 1 and 2 subjects
+        ],
+        subjectStatuses: [
+          { subjectId: 1, status: 'passed' },
+          { subjectId: 2, status: 'passed' },
+          { subjectId: 3, status: 'passed' },
+          // CS22 (Year 2) is missing
+        ],
+        plannedSubjects: [],
+      });
+
+      const practicumResult = evaluationResults.get(6);
+      expect(practicumResult?.status).toBe('not_eligible');
+      expect(practicumResult?.isEligible).toBe(false);
+      expect(practicumResult?.missingYearRangePrerequisites).toHaveLength(1);
+      expect(practicumResult?.missingYearRangePrerequisites[0]).toMatchObject({
+        type: 'year_range_prerequisite',
+        throughYearLevel: 2,
+        unmetSubjectCount: 1,
+      });
+    });
+
+    it('marks a subject eligible when all subjects in the required year range are passed', () => {
+      const evaluationResults = evaluateEligibility({
+        subjects: curriculumSubjects,
+        prerequisites: [],
+        corequisites: [],
+        yearRangePrerequisites: [
+          { subjectId: 6, throughYearLevel: 2 },
+        ],
+        subjectStatuses: [
+          { subjectId: 1, status: 'passed' },
+          { subjectId: 2, status: 'passed' },
+          { subjectId: 3, status: 'passed' },
+          { subjectId: 4, status: 'passed' },
+        ],
+        plannedSubjects: [],
+      });
+
+      const practicumResult = evaluationResults.get(6);
+      expect(practicumResult?.status).toBe('eligible');
+      expect(practicumResult?.isEligible).toBe(true);
+      expect(practicumResult?.missingYearRangePrerequisites).toHaveLength(0);
+    });
+
+    it('tracks direct prerequisite alongside year-range prerequisite without duplicating rules', () => {
+      const evaluationResults = evaluateEligibility({
+        subjects: curriculumSubjects,
+        prerequisites: [
+          { subjectId: 6, prerequisiteSubjectId: 4 }, // direct prerequisite CS22
+        ],
+        corequisites: [],
+        yearRangePrerequisites: [
+          { subjectId: 6, throughYearLevel: 2 }, // year range through Year 2
+        ],
+        subjectStatuses: [
+          { subjectId: 1, status: 'passed' },
+          { subjectId: 2, status: 'passed' },
+          { subjectId: 3, status: 'passed' },
+        ],
+        plannedSubjects: [],
+      });
+
+      const practicumResult = evaluationResults.get(6);
+      expect(practicumResult?.status).toBe('not_eligible');
+      expect(practicumResult?.missingPrerequisites).toHaveLength(1);
+      expect(practicumResult?.missingPrerequisites[0].subjectCode).toBe('CS22');
+      expect(practicumResult?.missingYearRangePrerequisites).toHaveLength(1);
+      expect(practicumResult?.missingYearRangePrerequisites[0].throughYearLevel).toBe(2);
+    });
+  });
 });

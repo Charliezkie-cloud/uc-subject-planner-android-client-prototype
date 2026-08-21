@@ -77,11 +77,16 @@ One file per program + curriculum version, bundled under `/data/<PROGRAM_CODE>/`
   "prerequisites": [
     { "subject": "IT301", "requires": "IT201" }
   ],
+  "year_range_prerequisites": [
+    { "subject": "IT401", "through_year_level": 3 }
+  ],
   "corequisites": [
     { "subject": "IT301", "with": "IT301L" }
   ]
 }
 ```
+
+`year_range_prerequisites` represents a prospectus requirement such as “must finish all 1st year to 3rd year courses.” During import, it expands into ordinary prerequisite edges for every curriculum subject from year 1 through `through_year_level`. The target subject must be in a later year, so it cannot become its own prerequisite.
 
 Import is a transaction: upsert into `programs` (unique on `program_code` + `curriculum_version`), then `subjects`, `program_subjects`, `prerequisites`, `corequisites`. Re-importing the same file should be idempotent (safe to re-run after a curriculum correction). Multiple versions of the same `program_code` coexist; the student picks one via Settings / Courses.
 

@@ -2,12 +2,13 @@ import {
   EvaluateEligibilityParams,
   SubjectEligibilityResult,
   MissingRequirement,
+  MissingYearRangeRequirement,
 } from './types';
 
 /**
  * Pure eligibility evaluation engine.
  * Computes eligibility for all subjects against prerequisite/co-requisite rules,
- * completed subject statuses, and planned subjects for the target term.
+ * year-range rules, completed subject statuses, and planned subjects for the target term.
  */
 export function evaluateEligibility(
   params: EvaluateEligibilityParams
@@ -16,6 +17,7 @@ export function evaluateEligibility(
     subjects,
     prerequisites,
     corequisites,
+    yearRangePrerequisites,
     subjectStatuses,
     plannedSubjects,
     targetPlanningTerm,
@@ -47,6 +49,15 @@ export function evaluateEligibility(
     corequisiteMap.set(corequisiteEdge.subjectId, corequisiteList);
   }
 
+  const yearRangePrerequisiteMap = new Map<number, number[]>();
+  if (yearRangePrerequisites) {
+    for (const yearRangeEdge of yearRangePrerequisites) {
+      const throughYearLevels = yearRangePrerequisiteMap.get(yearRangeEdge.subjectId) || [];
+      throughYearLevels.push(yearRangeEdge.throughYearLevel);
+      yearRangePrerequisiteMap.set(yearRangeEdge.subjectId, throughYearLevels);
+    }
+  }
+
   const sameTermPlannedSubjectIds = new Set<number>();
   if (targetPlanningTerm) {
     for (const plannedSubject of plannedSubjects) {
@@ -73,6 +84,7 @@ export function evaluateEligibility(
         isPassed: true,
         missingPrerequisites: [],
         missingCorequisites: [],
+        missingYearRangePrerequisites: [],
         unmetRequirementsCount: 0,
       });
       continue;
@@ -80,6 +92,7 @@ export function evaluateEligibility(
 
     const missingPrerequisites: MissingRequirement[] = [];
     const missingCorequisites: MissingRequirement[] = [];
+    const missingYearRangePrerequisites: MissingYearRangeRequirement[] = [];
 
     const requiredPrerequisites = prerequisiteMap.get(subject.id) || [];
     for (const prerequisiteId of requiredPrerequisites) {
@@ -92,6 +105,42 @@ export function evaluateEligibility(
           subjectCode: prerequisiteInfo ? prerequisiteInfo.code : `Subject #${prerequisiteId}`,
           subjectName: prerequisiteInfo?.name,
           reason: 'Prerequisite has not been passed yet.',
+        });
+      }
+    }
+
+    const throughYearLevels = yearRangePrerequisiteMap.get(subject.id) || [];
+    for (const throughYearLevel of throughYearLevels) {
+      let unpassedCount = 0;
+      for (const candidateSubject of subjects) {
+        if (
+          candidateSubject.id !== subject.id &&
+          candidateSubject.yearLevel !== undefined &&
+          candidateSubject.yearLevel <= throughYearLevel
+        ) {
+          if (!passedSubjectIds.has(candidateSubject.id)) {
+            unpassedCount++;
+          }
+        }
+      }
+
+      if (unpassedCount > 0) {
+        const ordinal = (n: number) => {
+          if (n === 1) return '1st';
+          if (n === 2) return '2nd';
+          if (n === 3) return '3rd';
+          return `${n}th`;
+        };
+        const rangeLabel =
+          throughYearLevel === 1
+            ? 'all 1st year subjects'
+            : `all 1st to ${ordinal(throughYearLevel)} year subjects`;
+
+        missingYearRangePrerequisites.push({
+          type: 'year_range_prerequisite',
+          throughYearLevel,
+          unmetSubjectCount: unpassedCount,
+          reason: `Requires ${rangeLabel} to be passed first.`,
         });
       }
     }
@@ -114,7 +163,10 @@ export function evaluateEligibility(
       }
     }
 
-    const unmetCount = missingPrerequisites.length + missingCorequisites.length;
+    const unmetCount =
+      missingPrerequisites.length +
+      missingCorequisites.length +
+      missingYearRangePrerequisites.length;
     const isEligible = unmetCount === 0;
 
     evaluationResults.set(subject.id, {
@@ -125,6 +177,7 @@ export function evaluateEligibility(
       isPassed: false,
       missingPrerequisites,
       missingCorequisites,
+      missingYearRangePrerequisites,
       unmetRequirementsCount: unmetCount,
     });
   }

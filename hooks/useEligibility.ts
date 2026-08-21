@@ -4,6 +4,7 @@ import {
   getProgramSubjects,
   getPrerequisitesForProgram,
   getCorequisitesForProgram,
+  getYearRangePrerequisitesForProgram,
   ProgramSubjectDetail,
 } from '@/db/queries/subjects';
 import { getSubjectStatuses, recordSubjectAttempt } from '@/db/queries/completedSubjects';
@@ -17,7 +18,7 @@ import {
 import { getStudentProfile, getProgramById } from '@/db/queries/programs';
 import { evaluateEligibility } from '@/features/eligibility/eligibility';
 import { SubjectEligibilityResult } from '@/features/eligibility/types';
-import { Program, Prerequisite, Corequisite, SubjectStatusView } from '@/types/database';
+import { Program, Prerequisite, Corequisite, YearRangePrerequisite, SubjectStatusView } from '@/types/database';
 
 type RefreshMode = 'full' | 'soft';
 
@@ -32,7 +33,9 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
   // Cached curriculum graph — reused on soft refreshes so the subject list identity stays stable.
   const prerequisitesRef = useRef<Prerequisite[]>([]);
   const corequisitesRef = useRef<Corequisite[]>([]);
+  const yearRangePrerequisitesRef = useRef<YearRangePrerequisite[]>([]);
   const subjectsRef = useRef<ProgramSubjectDetail[]>([]);
+  const activeProgramIdRef = useRef<number | null>(null);
 
   const plannedYear = targetTerm?.plannedSchoolYear;
   const plannedTermNumber = targetTerm?.plannedTerm;
@@ -56,6 +59,7 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
         subjects: mappedSubjects,
         prerequisites: prerequisitesRef.current,
         corequisites: corequisitesRef.current,
+        yearRangePrerequisites: yearRangePrerequisitesRef.current,
         subjectStatuses: statuses,
         plannedSubjects: plannedList,
         targetPlanningTerm:
@@ -71,13 +75,30 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
 
   const calculateEligibility = useCallback(
     async (mode: RefreshMode = 'full') => {
-      const isSoftRefresh = mode === 'soft' && subjectsRef.current.length > 0;
+      const studentProfile = await getStudentProfile();
+      const currentProgramId = studentProfile?.programId ?? null;
+      const hasProgramChanged = currentProgramId !== activeProgramIdRef.current;
+      const isSoftRefresh = mode === 'soft' && !hasProgramChanged && subjectsRef.current.length > 0;
 
       if (!isSoftRefresh) {
         setLoading(true);
       }
 
       try {
+        if (!currentProgramId) {
+          activeProgramIdRef.current = null;
+          setEligibilityMap(new Map());
+          setSubjects([]);
+          subjectsRef.current = [];
+          setActiveProgram(null);
+          setSubjectStatuses([]);
+          setAllPlannedSubjects([]);
+          prerequisitesRef.current = [];
+          corequisitesRef.current = [];
+          yearRangePrerequisitesRef.current = [];
+          return;
+        }
+
         if (isSoftRefresh) {
           const [statuses, plannedList] = await Promise.all([
             getSubjectStatuses(),
@@ -90,32 +111,28 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
           return;
         }
 
-        const studentProfile = await getStudentProfile();
-        if (!studentProfile || !studentProfile.programId) {
-          setEligibilityMap(new Map());
-          setSubjects([]);
-          subjectsRef.current = [];
-          setActiveProgram(null);
-          setSubjectStatuses([]);
-          setAllPlannedSubjects([]);
-          prerequisitesRef.current = [];
-          corequisitesRef.current = [];
-          return;
-        }
+        const [
+          program,
+          programSubjects,
+          programPrerequisites,
+          programCorequisites,
+          programYearRangePrerequisites,
+          statuses,
+          plannedList,
+        ] = await Promise.all([
+          getProgramById(currentProgramId),
+          getProgramSubjects(currentProgramId),
+          getPrerequisitesForProgram(currentProgramId),
+          getCorequisitesForProgram(currentProgramId),
+          getYearRangePrerequisitesForProgram(currentProgramId),
+          getSubjectStatuses(),
+          getPlannedSubjects(),
+        ]);
 
-        const programId = studentProfile.programId;
-        const [program, programSubjects, programPrerequisites, programCorequisites, statuses, plannedList] =
-          await Promise.all([
-            getProgramById(programId),
-            getProgramSubjects(programId),
-            getPrerequisitesForProgram(programId),
-            getCorequisitesForProgram(programId),
-            getSubjectStatuses(),
-            getPlannedSubjects(),
-          ]);
-
+        activeProgramIdRef.current = currentProgramId;
         prerequisitesRef.current = programPrerequisites;
         corequisitesRef.current = programCorequisites;
+        yearRangePrerequisitesRef.current = programYearRangePrerequisites;
         subjectsRef.current = programSubjects;
 
         setActiveProgram(program);
@@ -134,10 +151,10 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
     [applyEligibilityEvaluation]
   );
 
-  // Soft-refresh on term change and whenever Plan regains focus (e.g. after Subjects edits).
+  // Soft-refresh on term change and whenever Plan regains focus (e.g. after Courses/Subjects edits).
   useFocusEffect(
     useCallback(() => {
-      void calculateEligibility(subjectsRef.current.length > 0 ? 'soft' : 'full');
+      void calculateEligibility('soft');
     }, [calculateEligibility])
   );
 

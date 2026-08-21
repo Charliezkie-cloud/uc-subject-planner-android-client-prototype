@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { BookOpen, GitBranch, Layers } from 'lucide-react-native';
 import { TERMS } from '@/constants/grades';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
@@ -21,9 +22,15 @@ import {
   getCorequisitesForProgram,
   getPrerequisitesForProgram,
   getProgramSubjects,
+  getYearRangePrerequisitesForProgram,
   ProgramSubjectDetail,
 } from '@/db/queries/subjects';
-import { Corequisite, Prerequisite, Program } from '@/types/database';
+import { Corequisite, Prerequisite, Program, YearRangePrerequisite } from '@/types/database';
+
+const getYearLevelLabel = (yearLevel: number) => {
+  const ordinalSuffix = yearLevel === 1 ? 'st' : yearLevel === 2 ? 'nd' : yearLevel === 3 ? 'rd' : 'th';
+  return `${yearLevel}${ordinalSuffix} Year`;
+};
 
 export default function CoursesScreen() {
   const [loading, setLoading] = useState(true);
@@ -33,45 +40,51 @@ export default function CoursesScreen() {
   const [curriculumSubjects, setCurriculumSubjects] = useState<ProgramSubjectDetail[]>([]);
   const [prerequisites, setPrerequisites] = useState<Prerequisite[]>([]);
   const [corequisites, setCorequisites] = useState<Corequisite[]>([]);
+  const [yearRangePrerequisites, setYearRangePrerequisites] = useState<YearRangePrerequisite[]>([]);
+  const [selectedYearLevel, setSelectedYearLevel] = useState<number | 'all'>('all');
   const [selectedTerm, setSelectedTerm] = useState<number | 'all'>('all');
 
   const loadProgramSubjects = async (program: Program) => {
-    const [subjects, programPrerequisites, programCorequisites] = await Promise.all([
+    const [subjects, programPrerequisites, programCorequisites, programYearRangePrerequisites] = await Promise.all([
       getProgramSubjects(program.id),
       getPrerequisitesForProgram(program.id),
       getCorequisitesForProgram(program.id),
+      getYearRangePrerequisitesForProgram(program.id),
     ]);
     setCurriculumSubjects(subjects);
     setPrerequisites(programPrerequisites);
     setCorequisites(programCorequisites);
+    setYearRangePrerequisites(programYearRangePrerequisites);
   };
 
-  useEffect(() => {
-    const loadCoursesScreenData = async () => {
-      try {
-        setLoading(true);
-        const [availablePrograms, profile] = await Promise.all([getAllPrograms(), getStudentProfile()]);
-        const selectedProgram =
-          availablePrograms.find((program) => program.id === profile?.programId) ??
-          availablePrograms[0] ??
-          null;
+  const loadCoursesScreenData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [availablePrograms, profile] = await Promise.all([getAllPrograms(), getStudentProfile()]);
+      const selectedProgram =
+        availablePrograms.find((program) => program.id === profile?.programId) ??
+        availablePrograms[0] ??
+        null;
 
-        setPrograms(availablePrograms);
-        setCurrentYearLevel(profile?.currentYearLevel ?? null);
-        setActiveProgram(selectedProgram);
+      setPrograms(availablePrograms);
+      setCurrentYearLevel(profile?.currentYearLevel ?? null);
+      setActiveProgram(selectedProgram);
 
-        if (selectedProgram) {
-          await loadProgramSubjects(selectedProgram);
-        }
-      } catch (error) {
-        console.error('Failed to load courses', error);
-      } finally {
-        setLoading(false);
+      if (selectedProgram) {
+        await loadProgramSubjects(selectedProgram);
       }
-    };
-
-    loadCoursesScreenData();
+    } catch (error) {
+      console.error('Failed to load courses', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadCoursesScreenData();
+    }, [loadCoursesScreenData])
+  );
 
   const handleCurriculumChange = async (programId: string) => {
     const selectedProgram = programs.find((program) => program.id === Number(programId));
@@ -117,9 +130,37 @@ export default function CoursesScreen() {
     return codesBySubjectId;
   }, [corequisites, subjectCodeById]);
 
+  const yearRangePrerequisiteTextBySubjectId = useMemo(() => {
+    const textsBySubjectId = new Map<number, string>();
+    const ordinal = (n: number) => (n === 1 ? '1st' : n === 2 ? '2nd' : n === 3 ? '3rd' : `${n}th`);
+    for (const yr of yearRangePrerequisites) {
+      const text =
+        yr.throughYearLevel === 1
+          ? 'Requires all 1st subjects'
+          : `Requires all 1st to ${ordinal(yr.throughYearLevel)} subjects`;
+      textsBySubjectId.set(yr.subjectId, text);
+    }
+    return textsBySubjectId;
+  }, [yearRangePrerequisites]);
+
+  const availableYearLevels = useMemo(() => {
+    return [...new Set(curriculumSubjects.map((subject) => subject.yearLevel))].sort((firstYear, secondYear) => firstYear - secondYear);
+  }, [curriculumSubjects]);
+
+  useEffect(() => {
+    if (selectedYearLevel !== 'all' && !availableYearLevels.includes(selectedYearLevel)) {
+      setSelectedYearLevel('all');
+    }
+  }, [availableYearLevels, selectedYearLevel]);
+
   const filteredSubjects = useMemo(
-    () => curriculumSubjects.filter((subject) => selectedTerm === 'all' || subject.term === selectedTerm),
-    [curriculumSubjects, selectedTerm]
+    () =>
+      curriculumSubjects.filter(
+        (subject) =>
+          (selectedYearLevel === 'all' || subject.yearLevel === selectedYearLevel) &&
+          (selectedTerm === 'all' || subject.term === selectedTerm)
+      ),
+    [curriculumSubjects, selectedTerm, selectedYearLevel]
   );
 
   const totalUnits = useMemo(
@@ -180,6 +221,17 @@ export default function CoursesScreen() {
         )}
 
         <View style={styles.filterRow}>
+          <TouchableOpacity style={[styles.chip, selectedYearLevel === 'all' && styles.chipActive]} onPress={() => setSelectedYearLevel('all')}>
+            <Text style={[styles.chipText, selectedYearLevel === 'all' && styles.chipTextActive]}>All Years</Text>
+          </TouchableOpacity>
+          {availableYearLevels.map((yearLevel) => (
+            <TouchableOpacity key={yearLevel} style={[styles.chip, selectedYearLevel === yearLevel && styles.chipActive]} onPress={() => setSelectedYearLevel(yearLevel)}>
+              <Text style={[styles.chipText, selectedYearLevel === yearLevel && styles.chipTextActive]}>{getYearLevelLabel(yearLevel)}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.filterRow}>
           <TouchableOpacity style={[styles.chip, selectedTerm === 'all' && styles.chipActive]} onPress={() => setSelectedTerm('all')}>
             <Text style={[styles.chipText, selectedTerm === 'all' && styles.chipTextActive]}>All Terms</Text>
           </TouchableOpacity>
@@ -207,6 +259,11 @@ export default function CoursesScreen() {
           renderItem={({ item }) => {
             const subjectPrerequisiteCodes = prerequisiteCodesBySubjectId.get(item.subjectId) ?? [];
             const subjectCorequisiteCodes = corequisiteCodesBySubjectId.get(item.subjectId) ?? [];
+            const subjectYearRangeText = yearRangePrerequisiteTextBySubjectId.get(item.subjectId);
+            const hasRequirements =
+              subjectPrerequisiteCodes.length > 0 ||
+              subjectCorequisiteCodes.length > 0 ||
+              Boolean(subjectYearRangeText);
             return (
               <View style={styles.card}>
                 <View style={styles.row}>
@@ -215,9 +272,10 @@ export default function CoursesScreen() {
                 </View>
                 <Text style={styles.name}>{item.subjectName}</Text>
                 <Text style={styles.units}>{item.units} Units</Text>
-                {(subjectPrerequisiteCodes.length > 0 || subjectCorequisiteCodes.length > 0) && (
+                {hasRequirements && (
                   <View style={styles.reqsBox}>
                     {subjectPrerequisiteCodes.length > 0 && <View style={styles.reqRow}><GitBranch size={12} color="#dc2626" /><Text style={styles.reqLabel}>Prereq:</Text><Text style={styles.reqVal}>{subjectPrerequisiteCodes.join(', ')}</Text></View>}
+                    {subjectYearRangeText && <View style={styles.reqRow}><GitBranch size={12} color="#dc2626" /><Text style={styles.reqLabel}>Prereq:</Text><Text style={styles.reqVal}>{subjectYearRangeText}</Text></View>}
                     {subjectCorequisiteCodes.length > 0 && <View style={styles.reqRow}><Layers size={12} color="#d97706" /><Text style={styles.reqLabel}>Co-req:</Text><Text style={styles.reqVal}>{subjectCorequisiteCodes.join(', ')}</Text></View>}
                   </View>
                 )}

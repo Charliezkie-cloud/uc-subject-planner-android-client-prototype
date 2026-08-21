@@ -1,5 +1,5 @@
 import { getDatabase } from '../client';
-import { Prerequisite, Corequisite } from '@/types/database';
+import { Prerequisite, Corequisite, YearRangePrerequisite } from '@/types/database';
 
 export interface ProgramSubjectDetail {
   subjectId: number;
@@ -79,5 +79,29 @@ export async function getCorequisitesForProgram(programId: number): Promise<Core
     programId: corequisiteRow.program_id,
     subjectId: corequisiteRow.subject_id,
     corequisiteSubjectId: corequisiteRow.corequisite_subject_id,
+  }));
+}
+
+export async function getYearRangePrerequisitesForProgram(
+  programId: number
+): Promise<YearRangePrerequisite[]> {
+  const db = await getDatabase();
+  const rows = await db.getAllAsync<{
+    id: number;
+    program_id: number;
+    subject_id: number;
+    through_year_level: number;
+  }>(
+    `SELECT id, program_id, subject_id, through_year_level
+     FROM year_range_prerequisites
+     WHERE program_id = ?;`,
+    [programId]
+  );
+
+  return rows.map((row) => ({
+    id: row.id,
+    programId: row.program_id,
+    subjectId: row.subject_id,
+    throughYearLevel: row.through_year_level,
   }));
 }

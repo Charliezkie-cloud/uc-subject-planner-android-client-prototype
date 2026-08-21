@@ -96,5 +96,10 @@
     { "subject": "IT-SYSADMN32", "requires": "IT-NETWORK31" },
     { "subject": "IT-CPSTONE42", "requires": "IT-CPSTONE41" }
   ],
+  "year_range_prerequisites": [
+    { "subject": "CC-PROFIS10", "through_year_level": 2 },
+    { "subject": "IT-CPSTONE41", "through_year_level": 3 },
+    { "subject": "CC-PRACT40", "through_year_level": 3 }
+  ],
   "corequisites": []
 }

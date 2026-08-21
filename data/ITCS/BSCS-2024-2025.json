@@ -61,5 +61,16 @@
   "prerequisites": [
     { "subject": "CC-COMPROG12", "requires": "CC-COMPROG11" }, { "subject": "CS-DISCRET12", "requires": "CC-INTCOM11" }, { "subject": "CS-DISCRET12", "requires": "MATH 101" }, { "subject": "CC-TWRITE12", "requires": "ENTREP101" }, { "subject": "CC-TWRITE12", "requires": "CC-INTCOM11" }, { "subject": "PE 102", "requires": "PE 101" }, { "subject": "NSTP 102", "requires": "NSTP 101" }, { "subject": "CS-DISCRET21", "requires": "CS-DISCRET12" }, { "subject": "CC-DASTRUC21", "requires": "CC-COMPROG12" }, { "subject": "CS-QUAMETH21", "requires": "CS-DISCRET12" }, { "subject": "CS-DIFFCAL21", "requires": "CS-DISCRET12" }, { "subject": "CS-OOPROG21", "requires": "CC-COMPROG12" }, { "subject": "PE 103", "requires": "PE 102" }, { "subject": "CC-DIGILOG22", "requires": "CS-DISCRET21" }, { "subject": "CC-APPSDEV22", "requires": "CC-DASTRUC21" }, { "subject": "CS-DAALGO22", "requires": "CC-DASTRUC21" }, { "subject": "CC-DATACOM22", "requires": "CC-INTCOM11" }, { "subject": "CS-INTCALC22", "requires": "CS-DIFFCAL21" }, { "subject": "PE 104", "requires": "PE 103" }, { "subject": "CS-IMDBSYS31", "requires": "CC-APPSDEV22" }, { "subject": "CS-PROGLAN31", "requires": "CS-OOPROG21" }, { "subject": "CS-PROGLAN31", "requires": "CS-DAALGO22" }, { "subject": "CS-SOFTENG31", "requires": "CC-APPSDEV22" }, { "subject": "CC-HCI31", "requires": "CC-APPSDEV22" }, { "subject": "CC-RESCOM31", "requires": "CS-QUAMETH21" }, { "subject": "CC-RESCOM31", "requires": "CC-TWRITE12" }, { "subject": "CS-COMORG31", "requires": "CC-DIGILOG22" }, { "subject": "CS-AUTOLAN32", "requires": "CS-PROGLAN31" }, { "subject": "CS-INFOSEC32", "requires": "CS-IMDBSYS31" }, { "subject": "CS-SOFTENG32", "requires": "CS-SOFTENG31" }, { "subject": "CC-GRAPHICS32", "requires": "CC-HCI31" }, { "subject": "CS-OPSYS32", "requires": "CS-COMORG31" }, { "subject": "CS-THESIS42", "requires": "CS-THESIS41" }
   ],
+  "year_range_prerequisites": [
+    { "subject": "CS-EL1", "through_year_level": 2 },
+    { "subject": "CS-FRE2", "through_year_level": 2 },
+    { "subject": "CS-EL2", "through_year_level": 2 },
+    { "subject": "CS-FRE1", "through_year_level": 2 },
+    { "subject": "CS-THESIS41", "through_year_level": 3 },
+    { "subject": "CS-PRACT41", "through_year_level": 3 },
+    { "subject": "CS-EL3", "through_year_level": 3 },
+    { "subject": "CC-PROFIS10", "through_year_level": 2 },
+    { "subject": "CS-FRE3", "through_year_level": 3 }
+  ],
   "corequisites": []
 }
