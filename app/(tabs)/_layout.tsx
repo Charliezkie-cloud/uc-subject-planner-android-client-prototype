@@ -1,8 +1,8 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { CalendarDays, GraduationCap, BookOpen, Settings } from 'lucide-react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -17,17 +17,31 @@ export default function TabLayout() {
         tabBarButton: HapticTab,
       }}>
       <Tabs.Screen
-        name="index"
+        name="plan"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Plan',
+          tabBarIcon: ({ color, size }) => <CalendarDays size={size ?? 24} color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="subjects"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Subjects',
+          tabBarIcon: ({ color, size }) => <GraduationCap size={size ?? 24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="courses"
+        options={{
+          title: 'Courses',
+          tabBarIcon: ({ color, size }) => <BookOpen size={size ?? 24} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Settings',
+          tabBarIcon: ({ color, size }) => <Settings size={size ?? 24} color={color} />,
         }}
       />
     </Tabs>

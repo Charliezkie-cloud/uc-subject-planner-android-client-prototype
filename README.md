@@ -1,8 +1,64 @@
-# Welcome to your Expo app 👋
+# UCB Course Prospectus & Subject Eligibility Planner
+
+Offline-first React Native (Expo) app for University of Cebu – Banilad. Lets a student plot and plan future subjects against the official course prospectus — evaluating prerequisite and co-requisite rules automatically — without any connection to the university portal.
+
+**Special project** — UCB-CCS. Instructor: DL Sanchez. Student: CH Tinoy.
+
+## Problem
+
+Enrollment eligibility is currently checked manually by comparing a student's completed subjects against the prerequisite/co-requisite structure in the official syllabus. This is slow and error-prone. This app automates that comparison, fully offline.
+
+## Core flow
+
+```
+Open app → Select program/curriculum → Select year level →
+Input completed subjects + grades → App evaluates prerequisites &
+co-requisites → Displays subjects eligible for the next term
+```
+
+## Scope
+
+**In scope**
+- Import a program's curriculum (prerequisites, co-requisites, year/term layout) from bundled JSON
+- Record completed subjects and grades (Philippine 1.00–5.00 scale)
+- Compute subject eligibility for upcoming terms
+- Plot/plan subjects into future terms
+- Fully offline, single local student profile
+
+**Explicitly out of scope**
+- Connecting to or reading from the university portal
+- Modifying official student records
+- Performing actual enrollment
+
+## Tech stack
+
+| Layer | Choice |
+|---|---|
+| Framework | React Native + Expo |
+| UI components | `@react-native-reuseable` |
+| Local database | Expo SQLite |
+| Language | TypeScript |
+| Target platform | Android |
+
+## Project structure
+
+```
+/app                 Expo Router screens
+/components           Shared UI components
+/db
+  schema.sql          SQLite DDL (source of truth)
+  client.ts           expo-sqlite connection + migration runner
+  queries/             One file per table/domain (programs, subjects, completed, planned)
+/lib
+  eligibility.ts       Pure eligibility engine (no DB/React imports)
+  types.ts
+/data/curricula        Bundled per-program curriculum JSON files
+/hooks                 React hooks wrapping /db/queries for screens
+```
+
+## Getting started
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
-
-## Get started
 
 1. Install dependencies
 
@@ -35,6 +91,14 @@ npm run reset-project
 
 This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
 
+```bash
+npx create-expo-app@latest uc-subject-planner-android-client
+cd ucb-course-planner
+npx expo install expo-sqlite
+# add @react-native-reuseable per its install docs
+npx expo run:android
+```
+
 ## Learn more
 
 To learn more about developing your project with Expo, look at the following resources:
@@ -42,9 +106,14 @@ To learn more about developing your project with Expo, look at the following res
 - [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
 - [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
 
-## Join the community
+## Database
 
-Join our community of developers creating universal apps.
+See [`DATABASE_DESIGN.md`](./DATABASE_DESIGN.md) for the full schema, ER overview, grading rules, and the eligibility algorithm. DDL lives in [`schema.sql`](./schema.sql).
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Curriculum data
+
+Each program + curriculum version ships as a JSON file under `/data/curricula` and is imported into SQLite on first run (or via an import screen for updates). Format documented in `DATABASE_DESIGN.md`.
+
+## Status
+
+Planning stage — schema and architecture defined, implementation not started.
