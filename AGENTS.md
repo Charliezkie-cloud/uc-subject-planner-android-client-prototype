@@ -84,7 +84,8 @@ Don't add a 5th top-level tab without confirming scope — new functionality sho
 ├── utils/                      # generic helpers (date, formatting)
 │
 ├── data/
-│   └── curricula/               # bundled JSON per program/version
+│   ├── bundledCurricula.ts      # registry of all bundled prospectus JSON
+│   └── <PROGRAM_CODE>/          # e.g. BSIT/2023.json, BSIT/2024-2025.json
 │
 ├── assets/
 └── docs/                        # README.md, AGENTS.md, DATABASE_DESIGN.md

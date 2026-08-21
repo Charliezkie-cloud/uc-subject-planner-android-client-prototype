@@ -85,7 +85,10 @@ export default function CoursesScreen() {
       setCurriculumSubjects(subjects);
       setPrereqs(prerequisites);
       setCoreqs(corequisites);
-      Alert.alert('Curriculum Switched', `Active curriculum set to ${selectedProgram.programCode}.`);
+      Alert.alert(
+        'Curriculum Switched',
+        `Active curriculum set to ${selectedProgram.programCode} (${selectedProgram.curriculumVersion}).`
+      );
     } catch (err) {
       console.error('Failed to switch program', err);
       Alert.alert('Error', 'Failed to switch program.');
@@ -132,6 +135,20 @@ export default function CoursesScreen() {
     return curriculumSubjects.reduce((sum, subject) => sum + subject.units, 0);
   }, [curriculumSubjects]);
 
+  const programsGroupedByCode = useMemo(() => {
+    const groups = new Map<string, Program[]>();
+    for (const program of programs) {
+      const versions = groups.get(program.programCode) || [];
+      versions.push(program);
+      groups.set(program.programCode, versions);
+    }
+    return Array.from(groups.entries()).map(([programCode, versions]) => ({
+      programCode,
+      programName: versions[0]?.programName ?? programCode,
+      versions,
+    }));
+  }, [programs]);
+
   return (
     <ScreenContainer style={styles.container}>
       <View style={styles.header}>
@@ -146,24 +163,38 @@ export default function CoursesScreen() {
           </View>
         </View>
 
-        {programs.length > 1 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.programScroll}>
-            {programs.map((program) => {
-              const isActive = activeProgram?.id === program.id;
-              return (
-                <TouchableOpacity
-                  key={program.id}
-                  style={[styles.programCard, isActive && styles.programCardActive]}
-                  onPress={() => handleSelectProgram(program)}>
-                  <BookOpen size={14} color={isActive ? '#0284c7' : '#64748b'} />
-                  <Text style={[styles.programCodeText, isActive && styles.programCodeTextActive]}>
-                    {program.programCode} ({program.curriculumVersion})
-                  </Text>
-                  {isActive && <CheckCircle2 size={13} color="#0284c7" />}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
+        {programsGroupedByCode.length > 0 && (
+          <View style={styles.programGroups}>
+            {programsGroupedByCode.map((group) => (
+              <View key={group.programCode} style={styles.programGroup}>
+                <Text style={styles.programGroupLabel}>
+                  {group.programCode}
+                  {group.versions.length > 1 ? ' · prospectus versions' : ''}
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {group.versions.map((program) => {
+                    const isActive = activeProgram?.id === program.id;
+                    return (
+                      <TouchableOpacity
+                        key={program.id}
+                        style={[styles.programCard, isActive && styles.programCardActive]}
+                        onPress={() => handleSelectProgram(program)}>
+                        <BookOpen size={14} color={isActive ? '#0284c7' : '#64748b'} />
+                        <Text
+                          style={[
+                            styles.programCodeText,
+                            isActive && styles.programCodeTextActive,
+                          ]}>
+                          {program.curriculumVersion}
+                        </Text>
+                        {isActive && <CheckCircle2 size={13} color="#0284c7" />}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            ))}
+          </View>
         )}
 
         <View style={styles.filterRow}>
@@ -303,9 +334,19 @@ const styles = StyleSheet.create({
     color: '#64748b',
     marginTop: 2,
   },
-  programScroll: {
-    flexDirection: 'row',
+  programGroups: {
     marginBottom: 10,
+    gap: 8,
+  },
+  programGroup: {
+    gap: 6,
+  },
+  programGroupLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   programCard: {
     flexDirection: 'row',

@@ -64,13 +64,13 @@ Implementation note: keep this as a pure function in `/lib/eligibility.ts` (inpu
 
 ## Curriculum JSON import format (proposed)
 
-One file per program + curriculum version, bundled under `/data/curricula/`:
+One file per program + curriculum version, bundled under `/data/<PROGRAM_CODE>/` (e.g. `data/BSIT/2024-2025.json`). Register each file in `data/bundledCurricula.ts` so the app can seed multiple prospectus versions for the same course:
 
 ```json
 {
   "program_code": "BSIT",
   "program_name": "BS Information Technology",
-  "curriculum_version": "2023",
+  "curriculum_version": "2024-2025",
   "subjects": [
     { "code": "IT301", "name": "Systems Integration", "units": 3, "year_level": 3, "term": 1 }
   ],
@@ -83,7 +83,7 @@ One file per program + curriculum version, bundled under `/data/curricula/`:
 }
 ```
 
-Import is a transaction: upsert into `programs` (unique on `program_code` + `curriculum_version`), then `subjects`, `program_subjects`, `prerequisites`, `corequisites`. Re-importing the same file should be idempotent (safe to re-run after a curriculum correction).
+Import is a transaction: upsert into `programs` (unique on `program_code` + `curriculum_version`), then `subjects`, `program_subjects`, `prerequisites`, `corequisites`. Re-importing the same file should be idempotent (safe to re-run after a curriculum correction). Multiple versions of the same `program_code` coexist; the student picks one via Settings / Courses.
 
 ## Open items to confirm with UCB-CCS
 

@@ -14,8 +14,7 @@ import {
 } from '@/db/queries/programs';
 import { clearAllPlannedSubjects } from '@/db/queries/plannedSubjects';
 import { clearAllCompletedSubjects } from '@/db/queries/completedSubjects';
-import { importCurriculumPackage } from '@/db/queries/curriculumImport';
-import bsit2023Data from '../../data/curricula/bsit-2023.json';
+import { seedBundledCurricula } from '@/db/queries/seedCurricula';
 import { Program } from '@/types/database';
 import {
   BookOpen,
@@ -96,9 +95,20 @@ export default function SettingsScreen() {
 
   const handleReimportCurriculum = async () => {
     try {
-      await importCurriculumPackage(bsit2023Data, 'bsit-2023.json');
+      const seedResult = await seedBundledCurricula(true);
+      const failedImports = seedResult.imported.filter((result) => !result.success);
       await loadSettings();
-      Alert.alert('Success', 'BSIT 2023 Curriculum successfully re-imported.');
+      if (failedImports.length > 0) {
+        Alert.alert(
+          'Partial Import',
+          `Some curricula failed to re-import (${failedImports.length}). Check the console for details.`
+        );
+        return;
+      }
+      Alert.alert(
+        'Success',
+        `Re-imported ${seedResult.imported.length} bundled prospectus version(s).`
+      );
     } catch (err) {
       console.error('Failed to reimport curriculum', err);
       Alert.alert('Error', 'Failed to re-import curriculum.');
@@ -118,6 +128,9 @@ export default function SettingsScreen() {
           <Layers size={18} color="#0284c7" />
           <Text style={styles.sectionTitle}>Active Curriculum</Text>
         </View>
+        <Text style={styles.sectionHint}>
+          A course can have multiple prospectus versions. Pick the one that matches your intake year.
+        </Text>
         {programs.map((program) => {
           const isActive = activeProgramId === program.id;
           return (
@@ -127,7 +140,7 @@ export default function SettingsScreen() {
               onPress={() => handleSelectProgram(program.id)}>
               <View style={styles.programInfo}>
                 <Text style={styles.progCode}>
-                  {program.programCode} - {program.curriculumVersion}
+                  {program.programCode} · {program.curriculumVersion}
                 </Text>
                 <Text style={styles.progName}>{program.programName}</Text>
               </View>
@@ -173,8 +186,10 @@ export default function SettingsScreen() {
             <BookOpen size={18} color="#0284c7" />
           </View>
           <View style={styles.actionInfo}>
-            <Text style={styles.actionTitle}>Re-import Bundled Curriculum</Text>
-            <Text style={styles.actionSubtitle}>Restore original BSIT 2023 syllabus rules</Text>
+            <Text style={styles.actionTitle}>Re-import Bundled Curricula</Text>
+            <Text style={styles.actionSubtitle}>
+              Restore all prospectus versions under data/ (e.g. BSIT 2023 & 2024-2025)
+            </Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -239,6 +254,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#334155',
+  },
+  sectionHint: {
+    fontSize: 12,
+    color: '#64748b',
+    marginBottom: 10,
+    lineHeight: 17,
   },
   programCard: {
     backgroundColor: '#ffffff',

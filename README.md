@@ -62,7 +62,8 @@ and co-requisites → Displays subjects eligible for the next term
 ├── types/                   # Shared TS types
 ├── utils/                   # Generic helpers (date, formatting)
 ├── data/
-│   └── curricula/           # Bundled JSON per program and curriculum version
+│   ├── bundledCurricula.ts  # Registry of bundled prospectus JSON
+│   └── <PROGRAM_CODE>/      # e.g. BSIT/2023.json, BSIT/2024-2025.json
 ├── assets/
 └── docs/                    # README.md, AGENTS.md, DATABASE_DESIGN.md
 ```
@@ -123,7 +124,7 @@ See [`DATABASE_DESIGN.md`](./DATABASE_DESIGN.md) for the full schema, ER overvie
 
 ## Curriculum data
 
-Each program and curriculum version ships as a JSON file under `data/curricula` and gets imported into SQLite on first run, or through an import screen for updates. The format is documented in `DATABASE_DESIGN.md`.
+Each program and curriculum version ships as a JSON file under `data/<PROGRAM_CODE>/` (registered in `data/bundledCurricula.ts`) and gets imported into SQLite on first run — multiple prospectus versions per course are supported. Re-import from Settings after updating a file. The format is documented in `DATABASE_DESIGN.md`.
 
 ## Status
 
