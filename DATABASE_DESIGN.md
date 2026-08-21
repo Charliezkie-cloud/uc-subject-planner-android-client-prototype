@@ -68,7 +68,7 @@ One file per program + curriculum version, bundled under `/data/<PROGRAM_CODE>/`
 
 ```json
 {
-  "program_code": "BSIT",
+  "program_code": "ITCS",
   "program_name": "BS Information Technology",
   "curriculum_version": "2024-2025",
   "subjects": [

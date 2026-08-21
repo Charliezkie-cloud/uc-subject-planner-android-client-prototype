@@ -1,5 +1,7 @@
 import { CurriculumPackageDto } from '@/features/curriculum-import/types';
-import bsit2024_2025 from './BSIT/2024-2025.json';
+import bsit2024_2025 from './ITCS/2024-2025.json';
+import bscs2024_2025 from './ITCS/BSCS-2024-2025.json';
+import bscsai2024_2025 from './ITCS/BSCSAI-2024-2025.json';
 
 /**
  * Bundled curriculum packages, keyed by program folder then version file.
@@ -11,5 +13,7 @@ export interface BundledCurriculum {
 }
 
 export const BUNDLED_CURRICULA: BundledCurriculum[] = [
-  { sourceFile: 'BSIT/2024-2025.json', data: bsit2024_2025 as CurriculumPackageDto },
+  { sourceFile: 'ITCS/2024-2025.json', data: bsit2024_2025 as CurriculumPackageDto },
+  { sourceFile: 'ITCS/BSCS-2024-2025.json', data: bscs2024_2025 as CurriculumPackageDto },
+  { sourceFile: 'ITCS/BSCSAI-2024-2025.json', data: bscsai2024_2025 as CurriculumPackageDto },
 ];

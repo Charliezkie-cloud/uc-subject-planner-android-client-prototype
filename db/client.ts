@@ -1,5 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 
+const DATABASE_NAME = 'uc_planner.db';
+
 let dbInstance: SQLite.SQLiteDatabase | null = null;
 
 const SCHEMA_SQL = `
@@ -108,10 +110,19 @@ export async function getDatabase(): Promise<SQLite.SQLiteDatabase> {
     return dbInstance;
   }
 
-  const db = await SQLite.openDatabaseAsync('uc_planner.db');
+  const db = await SQLite.openDatabaseAsync(DATABASE_NAME);
   await db.execAsync('PRAGMA foreign_keys = ON;');
   await db.execAsync(SCHEMA_SQL);
 
   dbInstance = db;
   return db;
+}
+
+export async function resetDatabase(): Promise<void> {
+  if (dbInstance) {
+    await dbInstance.closeAsync();
+    dbInstance = null;
+  }
+
+  await SQLite.deleteDatabaseAsync(DATABASE_NAME);
 }

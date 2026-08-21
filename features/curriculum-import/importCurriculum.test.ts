@@ -3,7 +3,7 @@ import { validateCurriculumJson } from './importCurriculum';
 describe('Curriculum Import Validator', () => {
   it('validates a correct curriculum package', () => {
     const validCurriculumPackage = {
-      program_code: 'BSIT',
+      program_code: 'ITCS',
       program_name: 'BS Information Technology',
       curriculum_version: '2023',
       subjects: [
@@ -39,7 +39,7 @@ describe('Curriculum Import Validator', () => {
 
   it('catches nonexistent subject reference in prerequisites', () => {
     const invalidCurriculumPackage = {
-      program_code: 'BSIT',
+      program_code: 'ITCS',
       program_name: 'BS Information Technology',
       curriculum_version: '2023',
       subjects: [
@@ -57,7 +57,7 @@ describe('Curriculum Import Validator', () => {
 
   it('catches self-referencing prerequisite', () => {
     const invalidCurriculumPackage = {
-      program_code: 'BSIT',
+      program_code: 'ITCS',
       program_name: 'BS Information Technology',
       curriculum_version: '2023',
       subjects: [

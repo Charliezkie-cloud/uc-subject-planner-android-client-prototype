@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { BookOpen, Database, Info, RotateCcw, Trash2 } from 'lucide-react-native';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { clearAllCompletedSubjects } from '@/db/queries/completedSubjects';
 import { clearAllPlannedSubjects } from '@/db/queries/plannedSubjects';
 import { seedBundledCurricula } from '@/db/queries/seedCurricula';
+import { resetDatabase } from '@/db/client';
+import { useDatabase } from '@/providers/DatabaseProvider';
 
 export default function SettingsScreen() {
+  const { refreshDb } = useDatabase();
+  const [isResettingDatabase, setIsResettingDatabase] = useState(false);
+
   const handleClearPlan = () => {
     Alert.alert('Clear Planned Subjects', 'Are you sure you want to remove all planned subjects from your timeline?', [
       { text: 'Cancel', style: 'cancel' },
@@ -50,6 +55,33 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleResetDatabase = () => {
+    Alert.alert(
+      'Reset SQLite Database',
+      'This permanently removes your grades, planned subjects, selected program, and all other local data. Bundled curricula will be restored. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset Database',
+          style: 'destructive',
+          onPress: async () => {
+            setIsResettingDatabase(true);
+            try {
+              await resetDatabase();
+              await refreshDb();
+              Alert.alert('Database Reset', 'Your local database has been reset and bundled curricula have been restored.');
+            } catch (error) {
+              console.error('Failed to reset SQLite database', error);
+              Alert.alert('Reset Failed', 'The local database could not be reset. Please try again.');
+            } finally {
+              setIsResettingDatabase(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <ScreenContainer>
       <ScrollView style={styles.container}>
@@ -87,6 +119,17 @@ export default function SettingsScreen() {
               <Text style={styles.actionSubtitle}>Restore all prospectus versions under data/ (e.g. BSIT 2023 & 2024-2025)</Text>
             </View>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionCard, isResettingDatabase && styles.disabledActionCard]}
+            onPress={handleResetDatabase}
+            disabled={isResettingDatabase}>
+            <View style={styles.actionIconBox}><Trash2 size={18} color="#dc2626" /></View>
+            <View style={styles.actionInfo}>
+              <Text style={styles.actionTitle}>{isResettingDatabase ? 'Resetting Database...' : 'Reset SQLite Database'}</Text>
+              <Text style={styles.actionSubtitle}>Delete all local app data and restore bundled curricula</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         <View style={[styles.section, styles.lastSection]}>
@@ -119,6 +162,7 @@ const styles = StyleSheet.create({
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: '#334155' },
   actionCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 8, gap: 12 },
+  disabledActionCard: { opacity: 0.6 },
   actionIconBox: { width: 36, height: 36, borderRadius: 8, backgroundColor: '#f8fafc', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
   actionInfo: { flex: 1 },
   actionTitle: { fontSize: 14, fontWeight: '600', color: '#0f172a' },

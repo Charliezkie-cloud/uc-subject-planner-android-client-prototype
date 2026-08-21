@@ -7,10 +7,10 @@ PRAGMA foreign_keys = ON;
 
 -- One row per curriculum "package" imported from bundled JSON.
 -- Supports multiple programs and multiple curriculum versions
--- coexisting on-device (e.g. BSIT 2023 vs BSIT 2020).
+-- coexisting on-device (e.g. ITCS 2023 vs ITCS 2020).
 CREATE TABLE IF NOT EXISTS programs (
   id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-  program_code       TEXT NOT NULL,          -- e.g. 'BSIT'
+  program_code       TEXT NOT NULL,          -- e.g. 'ITCS'
   program_name       TEXT NOT NULL,          -- e.g. 'BS Information Technology'
   curriculum_version TEXT NOT NULL,          -- e.g. '2023'
   source_file        TEXT,                   -- imported JSON filename, for traceability
