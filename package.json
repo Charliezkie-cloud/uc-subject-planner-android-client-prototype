@@ -17,6 +17,7 @@
     "@react-navigation/native": "^7.1.8",
     "@rn-primitives/collapsible": "^1.5.2",
     "@rn-primitives/portal": "^1.5.3",
+    "@rn-primitives/select": "^1.5.2",
     "@rn-primitives/slot": "^1.5.2",
     "@rn-primitives/types": "^1.5.2",
     "babel-preset-expo": "~54.0.10",

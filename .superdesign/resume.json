@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "targets": {
+    "courses-settings-curriculum-swap": {
+      "targetKind": "existing-ui",
+      "projectId": "dbc6a2ec-9127-4fff-b048-571e4b370018",
+      "baselineDraftId": "56887de9-1805-4137-b6e3-3dffca63b30e",
+      "activeDraftId": "56887de9-1805-4137-b6e3-3dffca63b30e",
+      "designSystemPath": ".superdesign/init/theme.md",
+      "referenceIds": [],
+      "contextFiles": [
+        "app/(tabs)/courses.tsx",
+        "app/(tabs)/settings.tsx",
+        "components/ui/ScreenContainer.tsx",
+        "components/ui/select.tsx",
+        ".superdesign/init/theme.md"
+      ],
+      "fingerprints": {
+        "app/(tabs)/courses.tsx": "23B37468E96D2489F64451388FDBEA75435A5F4EB90887F7BC3B38F3F20F14CE",
+        "app/(tabs)/settings.tsx": "DE06DA2578BB368AC0DA2165AB8C657FCD22107A1F285306FD862C0FC9498CF4",
+        "components/ui/ScreenContainer.tsx": "BFBF81AB4821D3E79FB97231AF4E7CC0088056745770AAEEE8C31F0BB3CAA7AB",
+        "components/ui/select.tsx": "7C81141F2521E1AB4C8B93FF1B12FF4AC0B58B843B9559AE45EB9DF9FA240D9B",
+        ".superdesign/init/theme.md": "2740A4FA1CBB3B8015DBEBDD9E2A9AF50606F57D11A025CEBAE61B9C6D71A233"
+      },
+      "drafts": {
+        "56887de9-1805-4137-b6e3-3dffca63b30e": {
+          "title": "Android UI Component Swap",
+          "visualDirection": "Existing mobile UI with Curriculum sections exchanged",
+          "currentVersion": 1
+        }
+      },
+      "updatedAt": "2026-08-22T00:00:00+08:00"
+    }
+  }
+}
