@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native';
 import { useEligibility } from '@/hooks/useEligibility';
-import { SubjectCard } from '@/components/ui/SubjectCard';
+import { SubjectCard } from '@/components/SubjectCard';
 
 export default function PlanScreen() {
   const [selectedTerm] = useState({
