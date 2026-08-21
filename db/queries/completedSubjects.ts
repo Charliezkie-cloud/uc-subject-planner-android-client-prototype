@@ -89,6 +89,28 @@ export async function recordSubjectAttempt(subjectAttemptParams: {
   );
 }
 
+export async function updateCompletedSubjectAttempt(
+  completedSubjectId: number,
+  updates: {
+    grade: number;
+    schoolYear?: string | null;
+    termTaken?: number | null;
+  }
+): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    `UPDATE completed_subjects
+     SET grade = ?, school_year = ?, term_taken = ?
+     WHERE id = ?;`,
+    [
+      updates.grade,
+      updates.schoolYear ?? null,
+      updates.termTaken ?? null,
+      completedSubjectId,
+    ]
+  );
+}
+
 export async function deleteCompletedSubject(completedSubjectId: number): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM completed_subjects WHERE id = ?;', [completedSubjectId]);

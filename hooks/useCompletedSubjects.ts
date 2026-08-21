@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   getCompletedSubjects,
   recordSubjectAttempt,
+  updateCompletedSubjectAttempt,
   deleteCompletedSubject,
   CompletedSubjectDetail,
 } from '@/db/queries/completedSubjects';
@@ -14,9 +16,14 @@ export function useCompletedSubjects() {
   const [completedSubjects, setCompletedSubjects] = useState<CompletedSubjectDetail[]>([]);
   const [availableSubjects, setAvailableSubjects] = useState<ProgramSubjectDetail[]>([]);
   const [activeProgram, setActiveProgram] = useState<Program | null>(null);
+  const hasLoadedOnceRef = useRef(false);
 
-  const fetchCompletedSubjects = useCallback(async () => {
-    setLoading(true);
+  const fetchCompletedSubjects = useCallback(async (options?: { showLoading?: boolean }) => {
+    const showLoading = options?.showLoading ?? !hasLoadedOnceRef.current;
+    if (showLoading) {
+      setLoading(true);
+    }
+
     try {
       const [completedRecords, studentProfile] = await Promise.all([
         getCompletedSubjects(),
@@ -31,17 +38,27 @@ export function useCompletedSubjects() {
         ]);
         setActiveProgram(program);
         setAvailableSubjects(programSubjects);
+      } else {
+        setActiveProgram(null);
+        setAvailableSubjects([]);
       }
+
+      hasLoadedOnceRef.current = true;
     } catch (error) {
       console.error('Failed to fetch completed subjects', error);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   }, []);
 
-  useEffect(() => {
-    fetchCompletedSubjects();
-  }, [fetchCompletedSubjects]);
+  // Re-read when the tab gains focus so grades entered on Plan appear here.
+  useFocusEffect(
+    useCallback(() => {
+      void fetchCompletedSubjects({ showLoading: !hasLoadedOnceRef.current });
+    }, [fetchCompletedSubjects])
+  );
 
   const addAttempt = async (subjectAttempt: {
     subjectId: number;
@@ -50,12 +67,24 @@ export function useCompletedSubjects() {
     termTaken?: number | null;
   }) => {
     await recordSubjectAttempt(subjectAttempt);
-    await fetchCompletedSubjects();
+    await fetchCompletedSubjects({ showLoading: false });
+  };
+
+  const updateAttempt = async (
+    completedSubjectId: number,
+    updates: {
+      grade: number;
+      schoolYear?: string | null;
+      termTaken?: number | null;
+    }
+  ) => {
+    await updateCompletedSubjectAttempt(completedSubjectId, updates);
+    await fetchCompletedSubjects({ showLoading: false });
   };
 
   const removeAttempt = async (completedSubjectId: number) => {
     await deleteCompletedSubject(completedSubjectId);
-    await fetchCompletedSubjects();
+    await fetchCompletedSubjects({ showLoading: false });
   };
 
   return {
@@ -65,8 +94,7 @@ export function useCompletedSubjects() {
     activeProgram,
     refreshCompleted: fetchCompletedSubjects,
     addAttempt,
+    updateAttempt,
     removeAttempt,
   };
 }
-
-

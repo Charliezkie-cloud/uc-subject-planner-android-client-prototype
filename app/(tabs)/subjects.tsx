@@ -7,21 +7,16 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Alert,
-  Modal,
-  ScrollView,
 } from 'react-native';
 import { useCompletedSubjects } from '@/hooks/useCompletedSubjects';
 import { formatGrade } from '@/features/grades/gradeUtils';
 import { GradeModal } from '@/components/GradeModal';
-import { ProgramSubjectDetail } from '@/db/queries/subjects';
 import {
-  Plus,
   Trash2,
   Edit3,
   GraduationCap,
   CheckCircle,
   XCircle,
-  X,
 } from 'lucide-react-native';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 
@@ -31,20 +26,17 @@ export default function SubjectsScreen() {
   const {
     loading,
     completedSubjects,
-    availableSubjects,
     activeProgram,
-    addAttempt,
+    updateAttempt,
     removeAttempt,
   } = useCompletedSubjects();
 
   const [filter, setFilter] = useState<FilterType>('all');
-  const [selectSubjectModalVisible, setSelectSubjectModalVisible] = useState(false);
-  const [selectedSubjectForGrade, setSelectedSubjectForGrade] =
-    useState<ProgramSubjectDetail | null>(null);
   const [gradeModalVisible, setGradeModalVisible] = useState(false);
 
   // Edit attempt state
   const [editingAttempt, setEditingAttempt] = useState<{
+    id: number;
     subjectCode: string;
     subjectName: string;
     subjectId: number;
@@ -105,14 +97,9 @@ export default function SubjectsScreen() {
     );
   };
 
-  const handlePickSubject = (subj: ProgramSubjectDetail) => {
-    setSelectedSubjectForGrade(subj);
-    setSelectSubjectModalVisible(false);
-    setGradeModalVisible(true);
-  };
-
   const handleEditAttempt = (item: (typeof completedSubjects)[0]) => {
     setEditingAttempt({
+      id: item.id,
       subjectId: item.subjectId,
       subjectCode: item.subjectCode,
       subjectName: item.subjectName,
@@ -124,17 +111,13 @@ export default function SubjectsScreen() {
   };
 
   const handleSaveGrade = async (grade: number, schoolYear?: string, term?: number) => {
-    const subjectId = selectedSubjectForGrade?.subjectId ?? editingAttempt?.subjectId;
-    if (!subjectId) return;
+    if (!editingAttempt) return;
 
-    await addAttempt({
-      subjectId,
+    await updateAttempt(editingAttempt.id, {
       grade,
       schoolYear,
       termTaken: term,
     });
-
-    setSelectedSubjectForGrade(null);
     setEditingAttempt(null);
   };
 
@@ -150,13 +133,6 @@ export default function SubjectsScreen() {
                 : 'Completed Subjects & Grade History'}
             </Text>
           </View>
-
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => setSelectSubjectModalVisible(true)}>
-            <Plus size={16} color="#ffffff" />
-            <Text style={styles.addBtnText}>Record Grade</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.statsRow}>
@@ -280,61 +256,23 @@ export default function SubjectsScreen() {
               <GraduationCap size={40} color="#cbd5e1" />
               <Text style={styles.emptyTitle}>No Recorded Grades</Text>
               <Text style={styles.emptyText}>
-                {'Tap "+ Record Grade" or grade subjects in the Planner to build your academic history.'}
+                Grade subjects in the Planner to build your academic history.
               </Text>
             </View>
           }
         />
       )}
 
-      <Modal
-        visible={selectSubjectModalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={() => setSelectSubjectModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.subjectPickerContainer}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Subject to Grade</Text>
-              <TouchableOpacity onPress={() => setSelectSubjectModalVisible(false)}>
-                <X size={20} color="#64748b" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.subjectPickerList}>
-              {availableSubjects.map((subject) => (
-                <TouchableOpacity
-                  key={subject.subjectId}
-                  style={styles.subjectPickerItem}
-                  onPress={() => handlePickSubject(subject)}>
-                  <View>
-                    <View style={styles.codeRow}>
-                      <Text style={styles.pickerCode}>{subject.subjectCode}</Text>
-                      <Text style={styles.pickerMeta}>
-                        Year {subject.yearLevel} - Term {subject.term}
-                      </Text>
-                    </View>
-                    <Text style={styles.pickerName}>{subject.subjectName}</Text>
-                  </View>
-                  <Text style={styles.pickerUnits}>{subject.units}u</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-
-      {(selectedSubjectForGrade || editingAttempt) && (
+      {editingAttempt && (
         <GradeModal
           visible={gradeModalVisible}
-          subjectCode={selectedSubjectForGrade?.subjectCode ?? editingAttempt?.subjectCode ?? ''}
-          subjectName={selectedSubjectForGrade?.subjectName ?? editingAttempt?.subjectName ?? ''}
-          currentGrade={editingAttempt?.grade}
-          initialSchoolYear={editingAttempt?.schoolYear ?? '2025-2026'}
-          initialTerm={editingAttempt?.termTaken ?? 1}
+          subjectCode={editingAttempt.subjectCode}
+          subjectName={editingAttempt.subjectName}
+          currentGrade={editingAttempt.grade}
+          initialSchoolYear={editingAttempt.schoolYear ?? '2025-2026'}
+          initialTerm={editingAttempt.termTaken ?? 1}
           onClose={() => {
             setGradeModalVisible(false);
-            setSelectedSubjectForGrade(null);
             setEditingAttempt(null);
           }}
           onSubmit={handleSaveGrade}
@@ -372,20 +310,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#64748b',
     marginTop: 2,
-  },
-  addBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#0284c7',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addBtnText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#ffffff',
   },
   statsRow: {
     flexDirection: 'row',
@@ -560,66 +484,5 @@ const styles = StyleSheet.create({
     color: '#64748b',
     textAlign: 'center',
     marginTop: 4,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  subjectPickerContainer: {
-    backgroundColor: '#ffffff',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    maxHeight: '75%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  modalTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  subjectPickerList: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  subjectPickerItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  pickerCode: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#0284c7',
-  },
-  pickerMeta: {
-    fontSize: 11,
-    color: '#64748b',
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 4,
-  },
-  pickerName: {
-    fontSize: 13,
-    color: '#475569',
-    marginTop: 2,
-  },
-  pickerUnits: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#334155',
   },
 });

@@ -91,4 +91,23 @@ export async function clearAllPlannedSubjects(): Promise<void> {
   await db.runAsync('DELETE FROM planned_subjects;');
 }
 
+/** Relocates every plan row for a subject onto a single destination term. */
+export async function relocatePlannedSubjectToTerm(relocateParams: {
+  subjectId: number;
+  toSchoolYear: string;
+  toTerm: number;
+}): Promise<void> {
+  const db = await getDatabase();
+  await db.withTransactionAsync(async () => {
+    await db.runAsync('DELETE FROM planned_subjects WHERE subject_id = ?;', [
+      relocateParams.subjectId,
+    ]);
+    await db.runAsync(
+      `INSERT INTO planned_subjects (subject_id, planned_school_year, planned_term)
+       VALUES (?, ?, ?);`,
+      [relocateParams.subjectId, relocateParams.toSchoolYear, relocateParams.toTerm]
+    );
+  });
+}
+
 
