@@ -407,12 +407,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#64748b',
     textTransform: 'uppercase',
+    textAlign: "center"
   },
   statValue: {
     fontSize: 15,
     fontWeight: '800',
     color: '#0f172a',
-    marginTop: 2,
+    marginTop: "auto",
   },
   filterRow: {
     flexDirection: 'row',
