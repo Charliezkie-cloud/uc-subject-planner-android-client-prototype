@@ -56,3 +56,32 @@ export async function removePlannedSubject(id: number): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM planned_subjects WHERE id = ?;', [id]);
 }
+
+export async function removePlannedSubjectBySubjectAndTerm(params: {
+  subjectId: number;
+  plannedSchoolYear: string;
+  plannedTerm: number;
+}): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    'DELETE FROM planned_subjects WHERE subject_id = ? AND planned_school_year = ? AND planned_term = ?;',
+    [params.subjectId, params.plannedSchoolYear, params.plannedTerm]
+  );
+}
+
+export async function clearPlannedSubjectsForTerm(params: {
+  plannedSchoolYear: string;
+  plannedTerm: number;
+}): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync(
+    'DELETE FROM planned_subjects WHERE planned_school_year = ? AND planned_term = ?;',
+    [params.plannedSchoolYear, params.plannedTerm]
+  );
+}
+
+export async function clearAllPlannedSubjects(): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM planned_subjects;');
+}
+

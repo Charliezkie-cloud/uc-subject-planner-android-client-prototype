@@ -40,55 +40,54 @@ Don't add a 5th top-level tab without confirming scope — new functionality sho
 
 ```
 .
-├── app/                      # Expo Router — file-based routing, screens only
+├── app/                       # Expo Router — file-based routing, screens only
 │   ├── _layout.tsx
-│   └── (tabs)/               # tab navigator: Plan, Subjects, Courses, Settings
+│   └── (tabs)/
 │       ├── _layout.tsx
 │       ├── plan.tsx
 │       ├── subjects.tsx
 │       ├── courses.tsx
 │       └── settings.tsx
 │
-├── src/
-│   ├── features/             # domain logic, grouped by feature
-│   │   ├── eligibility/
-│   │   │   ├── eligibility.ts          # pure engine — no DB/React imports
-│   │   │   ├── eligibility.test.ts
-│   │   │   └── types.ts
-│   │   ├── curriculum-import/
-│   │   │   ├── importCurriculum.ts
-│   │   │   └── importCurriculum.test.ts
-│   │   └── grades/
-│   │       └── gradeUtils.ts          # PH scale helpers, status derivation
-│   │
-│   ├── db/
-│   │   ├── schema.sql
-│   │   ├── client.ts                # connection + migration runner
-│   │   └── queries/
-│   │       ├── programs.ts
-│   │       ├── subjects.ts
-│   │       ├── completedSubjects.ts
-│   │       └── plannedSubjects.ts
-│   │
-│   ├── components/           # dumb, reusable UI only
-│   │   ├── ui/               # wrappers around @react-native-reuseable
-│   │   ├── SubjectCard.tsx
-│   │   └── EligibilityBadge.tsx
-│   │
-│   ├── hooks/                # bridge queries -> screens
-│   │   ├── useEligibility.ts
-│   │   └── useCompletedSubjects.ts
-│   │
-│   ├── providers/            # context providers (DB connection, theme)
-│   ├── constants/            # grading thresholds, term enums
-│   ├── types/                # shared TS types
-│   └── utils/                # generic helpers (date, formatting)
+├── features/                  # domain logic, grouped by feature
+│   ├── eligibility/
+│   │   ├── eligibility.ts     # pure engine — no DB/React imports
+│   │   ├── eligibility.test.ts
+│   │   └── types.ts
+│   ├── curriculum-import/
+│   │   ├── importCurriculum.ts
+│   │   └── importCurriculum.test.ts
+│   └── grades/
+│       └── gradeUtils.ts      # PH scale helpers, status derivation
+│
+├── db/
+│   ├── schema.sql
+│   ├── client.ts               # connection + migration runner
+│   └── queries/
+│       ├── programs.ts
+│       ├── subjects.ts
+│       ├── completedSubjects.ts
+│       └── plannedSubjects.ts
+│
+├── components/                 # dumb, reusable UI only
+│   ├── ui/                     # wrappers around @react-native-reuseable
+│   ├── SubjectCard.tsx
+│   └── EligibilityBadge.tsx
+│
+├── hooks/                      # bridge queries -> screens
+│   ├── useEligibility.ts
+│   └── useCompletedSubjects.ts
+│
+├── providers/                  # context providers (DB connection, theme)
+├── constants/                  # grading thresholds, term enums
+├── types/                      # shared TS types
+├── utils/                      # generic helpers (date, formatting)
 │
 ├── data/
-│   └── curricula/            # bundled JSON per program/version
+│   └── curricula/               # bundled JSON per program/version
 │
 ├── assets/
-└── docs/                     # README.md, AGENTS.md, DATABASE_DESIGN.md
+└── docs/                        # README.md, AGENTS.md, DATABASE_DESIGN.md
 ```
 
 Rules:

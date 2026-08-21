@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { getDatabase } from '@/db/client';
-import { getAllPrograms } from '@/db/queries/programs';
+import { getAllPrograms, getStudentProfile, updateStudentProfile } from '@/db/queries/programs';
 import { importCurriculumPackage } from '@/db/queries/curriculumImport';
 import bsit2023Data from '../../data/curricula/bsit-2023.json';
 
@@ -28,9 +28,16 @@ export function DatabaseProvider({ children }: { children: React.ReactNode }) {
       await getDatabase();
       const programs = await getAllPrograms();
 
+      let currentPrograms = programs;
       // If database is empty, automatically seed the bundled BSIT 2023 curriculum
-      if (programs.length === 0) {
+      if (currentPrograms.length === 0) {
         await importCurriculumPackage(bsit2023Data, 'bsit-2023.json');
+        currentPrograms = await getAllPrograms();
+      }
+
+      const profile = await getStudentProfile();
+      if (!profile && currentPrograms.length > 0) {
+        await updateStudentProfile(currentPrograms[0].id, 1);
       }
 
       setIsReady(true);

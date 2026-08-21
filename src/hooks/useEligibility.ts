@@ -1,15 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { getProgramSubjects, getPrerequisitesForProgram, getCorequisitesForProgram, ProgramSubjectDetail } from '@/db/queries/subjects';
-import { getSubjectStatuses } from '@/db/queries/completedSubjects';
-import { getPlannedSubjects } from '@/db/queries/plannedSubjects';
-import { getStudentProfile } from '@/db/queries/programs';
+import { getSubjectStatuses, recordSubjectAttempt } from '@/db/queries/completedSubjects';
+import { getPlannedSubjects, addPlannedSubject, removePlannedSubjectBySubjectAndTerm, PlannedSubjectDetail } from '@/db/queries/plannedSubjects';
+import { getStudentProfile, getProgramById } from '@/db/queries/programs';
 import { evaluateEligibility } from '@/features/eligibility/eligibility';
 import { SubjectEligibilityResult } from '@/features/eligibility/types';
+import { Program, SubjectStatusView } from '@/types/database';
 
 export function useEligibility(targetTerm?: { plannedSchoolYear: string; plannedTerm: number }) {
   const [loading, setLoading] = useState(true);
   const [eligibilityMap, setEligibilityMap] = useState<Map<number, SubjectEligibilityResult>>(new Map());
   const [subjects, setSubjects] = useState<ProgramSubjectDetail[]>([]);
+  const [activeProgram, setActiveProgram] = useState<Program | null>(null);
+  const [subjectStatuses, setSubjectStatuses] = useState<SubjectStatusView[]>([]);
+  const [allPlannedSubjects, setAllPlannedSubjects] = useState<PlannedSubjectDetail[]>([]);
 
   const plannedYear = targetTerm?.plannedSchoolYear;
   const plannedTermNumber = targetTerm?.plannedTerm;
@@ -21,12 +25,16 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
       if (!profile || !profile.programId) {
         setEligibilityMap(new Map());
         setSubjects([]);
+        setActiveProgram(null);
+        setSubjectStatuses([]);
+        setAllPlannedSubjects([]);
         setLoading(false);
         return;
       }
 
       const programId = profile.programId;
-      const [progSubjects, prereqs, coreqs, statuses, planned] = await Promise.all([
+      const [prog, progSubjects, prereqs, coreqs, statuses, planned] = await Promise.all([
+        getProgramById(programId),
         getProgramSubjects(programId),
         getPrerequisitesForProgram(programId),
         getCorequisitesForProgram(programId),
@@ -34,7 +42,10 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
         getPlannedSubjects(),
       ]);
 
+      setActiveProgram(prog);
       setSubjects(progSubjects);
+      setSubjectStatuses(statuses);
+      setAllPlannedSubjects(planned);
 
       const mappedSubjects = progSubjects.map((s) => ({
         id: s.subjectId,
@@ -69,10 +80,86 @@ export function useEligibility(targetTerm?: { plannedSchoolYear: string; planned
     calculate();
   }, [calculate]);
 
+  const subjectStatusesMap = useMemo(() => {
+    const map = new Map<number, SubjectStatusView>();
+    for (const st of subjectStatuses) {
+      map.set(st.subjectId, st);
+    }
+    return map;
+  }, [subjectStatuses]);
+
+  const plannedSubjectIdsForTargetTerm = useMemo(() => {
+    const set = new Set<number>();
+    if (plannedYear && plannedTermNumber !== undefined) {
+      for (const p of allPlannedSubjects) {
+        if (p.plannedSchoolYear === plannedYear && p.plannedTerm === plannedTermNumber) {
+          set.add(p.subjectId);
+        }
+      }
+    }
+    return set;
+  }, [allPlannedSubjects, plannedYear, plannedTermNumber]);
+
+  const planSubject = async (subjectId: number) => {
+    if (!plannedYear || plannedTermNumber === undefined) return;
+    await addPlannedSubject({
+      subjectId,
+      plannedSchoolYear: plannedYear,
+      plannedTerm: plannedTermNumber,
+    });
+    await calculate();
+  };
+
+  const unplanSubject = async (subjectId: number) => {
+    if (!plannedYear || plannedTermNumber === undefined) return;
+    await removePlannedSubjectBySubjectAndTerm({
+      subjectId,
+      plannedSchoolYear: plannedYear,
+      plannedTerm: plannedTermNumber,
+    });
+    await calculate();
+  };
+
+  const planAllEligible = async (subjectIds: number[]) => {
+    if (!plannedYear || plannedTermNumber === undefined) return;
+    for (const subjectId of subjectIds) {
+      await addPlannedSubject({
+        subjectId,
+        plannedSchoolYear: plannedYear,
+        plannedTerm: plannedTermNumber,
+      });
+    }
+    await calculate();
+  };
+
+  const recordGrade = async (
+    subjectId: number,
+    grade: number,
+    schoolYear?: string,
+    term?: number
+  ) => {
+    await recordSubjectAttempt({
+      subjectId,
+      grade,
+      schoolYear: schoolYear ?? plannedYear,
+      termTaken: term ?? plannedTermNumber,
+    });
+    await calculate();
+  };
+
   return {
     loading,
     eligibilityMap,
     subjects,
+    activeProgram,
+    subjectStatusesMap,
+    allPlannedSubjects,
+    plannedSubjectIds: plannedSubjectIdsForTargetTerm,
     refreshEligibility: calculate,
+    planSubject,
+    unplanSubject,
+    planAllEligible,
+    recordGrade,
   };
 }
+

@@ -94,3 +94,9 @@ export async function deleteCompletedSubject(id: number): Promise<void> {
   const db = await getDatabase();
   await db.runAsync('DELETE FROM completed_subjects WHERE id = ?;', [id]);
 }
+
+export async function clearAllCompletedSubjects(): Promise<void> {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM completed_subjects;');
+}
+
