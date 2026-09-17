@@ -44,3 +44,7 @@ app-example
 
 # webstorm idea
 /.idea
+
+# Agents
+AGENTS.md
+CLAUDE.md
